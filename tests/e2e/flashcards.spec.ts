@@ -11,8 +11,8 @@ test.describe('Flashcard app', () => {
       }
     })
     await page.reload()
-    // Wait for the default deck to be seeded
-    await page.waitForTimeout(200)
+    // Wait for seed deck + 1000 cards to be inserted on fresh install
+    await page.waitForTimeout(1000)
   })
 
   test('add a card and see it in the card list', async ({ page }) => {
@@ -66,7 +66,7 @@ test.describe('Flashcard app', () => {
 
     // Review the Spanish deck — should only show the Spanish card
     await page.getByRole('button', { name: 'Decks' }).click()
-    await page.getByRole('button', { name: 'Review' }).first().click()
+    await page.locator('li').filter({ hasText: 'Spanish' }).getByRole('button', { name: 'Review' }).click()
     await expect(page.getByText('Hola')).toBeVisible()
 
     // Rate Good and queue should be empty for this deck

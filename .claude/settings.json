@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'export NVM_DIR=\"${HOME}/.nvm\"; source \"${NVM_DIR}/nvm.sh\" 2>/dev/null; cd /home/bahm/Projects/spaced-learning && OUTPUT=$(npx tsc --noEmit 2>&1); if [ -z \"$OUTPUT\" ]; then echo \"tsc: OK\"; else echo \"tsc errors:\"; echo \"$OUTPUT\" | head -20; fi; exit 0'"
+          }
+        ]
+      }
+    ]
+  }
+}

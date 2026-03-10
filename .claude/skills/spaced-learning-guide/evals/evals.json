@@ -1,0 +1,52 @@
+{
+  "skill_name": "spaced-learning-guide",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "How do I run the unit tests for the spaced-learning project?",
+      "expected_output": "The correct bash command that sources nvm and runs vitest on tests/unit",
+      "files": [],
+      "expectations": [
+        "Response includes the NVM_DIR sourcing pattern",
+        "Response mentions 'npx vitest run tests/unit' or equivalent",
+        "Response does NOT suggest just running 'npm test' without nvm sourcing"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to add a feature to spaced-learning that shows the total number of cards reviewed today. Where should this logic live and how should I implement it?",
+      "expected_output": "Guidance that places query logic in reviewRepo.ts (db layer), exposes it via a new hook, and keeps the component thin. Should mention Dexie live query and the domain/db/hooks/components separation.",
+      "files": [],
+      "expectations": [
+        "Recommends putting DB query logic in src/db/reviewRepo.ts",
+        "Suggests creating a hook in src/hooks/ using useLiveQuery",
+        "Keeps the component thin (no direct Dexie calls in components)",
+        "Mentions the domain/db/hooks/components architecture"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I'm getting a TypeScript error when trying to index into the result of fsrs.repeat(). How do I fix this in the spaced-learning codebase?",
+      "expected_output": "Explains the IPreview type issue and provides the correct cast: (result as unknown as Record<number, { card: FSRSCard } | undefined>)[fsrsRating]",
+      "files": [],
+      "expectations": [
+        "Identifies that the issue is with IPreview not having a numeric index signature",
+        "Shows the 'as unknown as Record<number, ...>' cast pattern",
+        "Explains that fsrs.repeat() returns keys as numeric Rating values (1=Again, 2=Hard, 3=Good, 4=Easy)"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "How does deck-scoped review work in spaced-learning? I want to understand the data flow from the Decks tab UI button all the way through to filtering due cards by deck.",
+      "expected_output": "Explains the View union type in App.tsx, DeckList's onReviewDeck callback, ReviewSession receiving deckId prop, useReview(deckId) hook, and getDueCardsByDeck in reviewRepo.ts",
+      "files": [],
+      "expectations": [
+        "Mentions the View union type (tab vs deck-review) in App.tsx",
+        "Explains DeckList calls onReviewDeck(deckId, deckName) to switch view",
+        "Mentions ReviewSession receives optional deckId prop",
+        "Explains useReview(deckId) calls getDueCardsByDeck when deckId is provided",
+        "Mentions getDueCardsByDeck filters by deckId after joining schedules and cards tables"
+      ]
+    }
+  ]
+}

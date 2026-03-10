@@ -91,10 +91,12 @@ EOF
 ```
 
 ### 9. Consolidate learnings
-Run the post-session memory sync to capture any lessons from this implementation and reflect on workflow improvements:
-```bash
-bash -c 'export NVM_DIR="${HOME}/.nvm"; source "${NVM_DIR}/nvm.sh"; npm run memory:sync'
-```
+`npm run memory:sync` cannot run inside an active Claude Code session (it uses `claude -p` which would nest sessions). Instead, update MEMORY.md directly:
+
+1. Read `/home/bahm/.claude/projects/-home-bahm-Projects-spaced-learning/memory/MEMORY.md`
+2. Reflect on this implementation: errors hit and how they were fixed, architectural decisions, patterns discovered, pitfalls avoided
+3. Edit MEMORY.md — add only new, stable lessons not already captured. No duplicates. Keep it concise.
+4. Ask: **what additional steps could make this workflow more automated or effective?** If you have concrete ideas not already in MEMORY.md, add a brief "Workflow improvement ideas" section.
 
 ---
 
@@ -105,5 +107,5 @@ bash -c 'export NVM_DIR="${HOME}/.nvm"; source "${NVM_DIR}/nvm.sh"; npm run memo
 - `ScheduleRecord` fields are **snake_case**: `elapsed_days`, `scheduled_days`, `learning_steps`, `last_review`
 - Bumping the Dexie schema version requires carrying forward ALL previous index definitions
 - `ensureDefaultDeck()` must be called on app startup — not just in migration callbacks
-- After clearing IndexedDB in E2E tests: `waitForTimeout(200)` before asserting
+- After clearing IndexedDB in E2E tests: `waitForTimeout(1000)` before asserting — the 1000-card seed bulk insert takes longer than a single deck insert
 - Button name `exact: true` when the label is a substring of another button (e.g. "Add" vs "Add Deck")

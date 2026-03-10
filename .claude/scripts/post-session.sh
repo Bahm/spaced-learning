@@ -1,12 +1,29 @@
 #!/bin/bash
 # post-session.sh
 # Consolidates lessons learned from the latest Claude Code session into MEMORY.md.
-# Run at the end of each development session: npm run memory:sync
+#
+# Usage:
+#   npm run memory:sync        — run from a terminal OUTSIDE an active Claude Code session
+#   (inside Claude Code)       — Claude should edit MEMORY.md directly; this script will not work there
 #
 # What it does:
 #   1. Finds the most recent session transcript
 #   2. Uses claude -p to extract new lessons and update MEMORY.md
 #   3. Asks a reflective question: how could the workflow be more automated?
+
+# Detect if we're running inside an active Claude Code session.
+# Claude Code sets $CLAUDECODE in the environment; spawning `claude -p` inside
+# another Claude Code process crashes both sessions.
+if [ -n "$CLAUDECODE" ]; then
+  echo "⚠️  Running inside Claude Code — cannot launch a nested claude subprocess."
+  echo ""
+  echo "Instead, ask Claude to update MEMORY.md directly:"
+  echo "  'Please update MEMORY.md with lessons from this session'"
+  echo ""
+  echo "Or run this script from a terminal outside Claude Code:"
+  echo "  npm run memory:sync"
+  exit 0
+fi
 
 MEMORY_FILE="${HOME}/.claude/projects/-home-bahm-Projects-spaced-learning/memory/MEMORY.md"
 SESSION_DIR="${HOME}/.claude/projects/-home-bahm-Projects-spaced-learning"

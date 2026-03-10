@@ -108,6 +108,16 @@ test.describe('Flashcard app', () => {
     await expect(page.getByText('Geography')).toBeVisible()
   })
 
+  test('Review button is enabled for deck with unscheduled cards', async ({ page }) => {
+    // The seed deck has 1000 cards, none reviewed (no schedule entries)
+    // The Review button must be enabled because unscheduled cards are immediately due
+    await page.getByRole('button', { name: 'Decks' }).click()
+    const seedDeckRow = page.locator('li').filter({ hasText: '1000 most common words in Vietnamese' }).first()
+    await expect(seedDeckRow).toBeVisible()
+    const reviewBtn = seedDeckRow.getByRole('button', { name: 'Review' })
+    await expect(reviewBtn).not.toBeDisabled()
+  })
+
   test('create a deck and review only its cards', async ({ page }) => {
     // Create a second deck
     await page.getByRole('button', { name: 'Decks' }).click()

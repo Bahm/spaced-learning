@@ -1,5 +1,5 @@
-import { db } from './db'
-import type { Deck } from '../domain/types'
+import { db, type ScheduleRecord } from './db'
+import type { Card, Deck } from '../domain/types'
 import { createCard } from '../domain/cards'
 import { VIETNAMESE_SEED_CARDS } from './seedData'
 
@@ -15,6 +15,25 @@ export const deleteDeck = async (id: string): Promise<void> => {
     await db.schedules.bulkDelete(cardIds)
     await db.cards.where('deckId').equals(id).delete()
     await db.decks.delete(id)
+  })
+}
+
+/** Captures deck + all its cards + their schedules before deletion, for undo. */
+export const getDeckSnapshot = async (id: string): Promise<{ deck: Deck; cards: Card[]; schedules: ScheduleRecord[] }> => {
+  const deck = await db.decks.get(id)
+  if (!deck) throw new Error(`Deck ${id} not found`)
+  const cards = await db.cards.where('deckId').equals(id).toArray()
+  const scheduleOrUndefined = await db.schedules.bulkGet(cards.map((c) => c.id))
+  const schedules = scheduleOrUndefined.filter((s): s is ScheduleRecord => s !== undefined)
+  return { deck, cards, schedules }
+}
+
+/** Re-inserts a previously deleted deck with all its cards and schedules. */
+export const restoreDeck = async (deck: Deck, cards: Card[], schedules: ScheduleRecord[]): Promise<void> => {
+  await db.transaction('rw', db.decks, db.cards, db.schedules, async () => {
+    await db.decks.put(deck)
+    await db.cards.bulkPut(cards)
+    if (schedules.length > 0) await db.schedules.bulkPut(schedules)
   })
 }
 

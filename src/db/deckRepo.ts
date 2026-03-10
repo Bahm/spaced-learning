@@ -1,5 +1,7 @@
 import { db } from './db'
 import type { Deck } from '../domain/types'
+import { createCard } from '../domain/cards'
+import { VIETNAMESE_SEED_CARDS } from './seedData'
 
 export const addDeck = (deck: Deck): Promise<string> => db.decks.add(deck)
 
@@ -16,14 +18,21 @@ export const deleteDeck = async (id: string): Promise<void> => {
   })
 }
 
-// Ensures at least one deck exists — called on app startup for fresh installs.
+// Seeds the Vietnamese vocabulary deck on fresh installs — called on app startup.
 export const ensureDefaultDeck = async (): Promise<void> => {
   const count = await db.decks.count()
   if (count === 0) {
-    await db.decks.add({
+    const deck: Deck = {
       id: crypto.randomUUID(),
-      name: 'Default',
+      name: '1000 most common words in Vietnamese',
       createdAt: Date.now(),
+    }
+    await db.transaction('rw', db.decks, db.cards, async () => {
+      await db.decks.add(deck)
+      const cards = VIETNAMESE_SEED_CARDS.map(({ front, back }) =>
+        createCard(front, back, deck.id),
+      )
+      await db.cards.bulkAdd(cards)
     })
   }
 }

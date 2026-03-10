@@ -57,6 +57,57 @@ test.describe('Flashcard app', () => {
     await expect(page.getByRole('alert')).toBeVisible()
   })
 
+  test('delete a card then undo restores it', async ({ page }) => {
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByLabel('Front').fill('Capital of Japan')
+    await page.getByLabel('Back').fill('Tokyo')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+
+    await page.getByRole('button', { name: 'Cards' }).click()
+    await expect(page.getByText('Capital of Japan')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Delete card: Capital of Japan' }).click()
+    await expect(page.getByText('Capital of Japan')).not.toBeVisible()
+
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(page.getByText('Capital of Japan')).toBeVisible()
+  })
+
+  test('delete a deck requires confirmation and cancel keeps it', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('History')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+
+    await page.locator('li').filter({ hasText: 'History' }).getByRole('button', { name: /delete deck history/i }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await expect(page.getByText('History')).toBeVisible()
+  })
+
+  test('delete a deck then undo restores it', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Geography')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+
+    // Add a card to the deck
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByLabel('Deck').selectOption({ label: 'Geography' })
+    await page.getByLabel('Front').fill('Largest country by area')
+    await page.getByLabel('Back').fill('Russia')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+
+    // Delete the deck (confirm)
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.locator('li').filter({ hasText: 'Geography' }).getByRole('button', { name: /delete deck geography/i }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click()
+    await expect(page.getByText('Geography')).not.toBeVisible()
+
+    // Undo — deck and card come back
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(page.getByText('Geography')).toBeVisible()
+  })
+
   test('create a deck and review only its cards', async ({ page }) => {
     // Create a second deck
     await page.getByRole('button', { name: 'Decks' }).click()

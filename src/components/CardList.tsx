@@ -1,10 +1,44 @@
+import { useState, useEffect } from 'react'
 import { useCards } from '../hooks/useCards'
-import { deleteCard } from '../db/cardRepo'
+import { deleteCard, getCardSnapshot, restoreCard } from '../db/cardRepo'
+import type { Card } from '../domain/types'
+import type { ScheduleRecord } from '../db/db'
+
+interface UndoState {
+  card: Card
+  schedule: ScheduleRecord | undefined
+  timeoutId: ReturnType<typeof setTimeout>
+}
 
 export const CardList = () => {
   const cards = useCards()
+  const [undo, setUndo] = useState<UndoState | null>(null)
 
-  if (cards.length === 0) {
+  useEffect(() => {
+    return () => {
+      if (undo) clearTimeout(undo.timeoutId)
+    }
+  }, [undo])
+
+  const handleDelete = async (id: string) => {
+    if (undo) {
+      clearTimeout(undo.timeoutId)
+      setUndo(null)
+    }
+    const snapshot = await getCardSnapshot(id)
+    await deleteCard(id)
+    const timeoutId = setTimeout(() => setUndo(null), 5000)
+    setUndo({ ...snapshot, timeoutId })
+  }
+
+  const handleUndo = async () => {
+    if (!undo) return
+    clearTimeout(undo.timeoutId)
+    await restoreCard(undo.card, undo.schedule)
+    setUndo(null)
+  }
+
+  if (cards.length === 0 && !undo) {
     return <p>No cards yet. Add some!</p>
   }
 
@@ -28,7 +62,7 @@ export const CardList = () => {
               <span style={{ color: '#888', marginLeft: '8px' }}>→ {card.back}</span>
             </div>
             <button
-              onClick={() => deleteCard(card.id)}
+              onClick={() => handleDelete(card.id)}
               aria-label={`Delete card: ${card.front}`}
               style={{ background: 'none', border: '1px solid #555', cursor: 'pointer', padding: '4px 8px' }}
             >
@@ -37,6 +71,33 @@ export const CardList = () => {
           </li>
         ))}
       </ul>
+
+      {undo && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#2a2a3e',
+            border: '1px solid #444',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            zIndex: 1000,
+          }}
+        >
+          <span>Card deleted</span>
+          <button
+            onClick={handleUndo}
+            style={{ padding: '4px 12px', cursor: 'pointer', borderRadius: '4px' }}
+          >
+            Undo
+          </button>
+        </div>
+      )}
     </div>
   )
 }

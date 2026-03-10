@@ -46,23 +46,21 @@ export const getReviewedTodayCount = (now: Date = new Date()): Promise<number> =
 }
 
 export const getDueCardsByDeck = async (deckId: string, now: Date = new Date()) => {
-  const dueRecords = await db.schedules
-    .where('due')
-    .belowOrEqual(now.getTime())
-    .toArray()
-  const cardIds = dueRecords.map((r) => r.cardId)
-  const cards = await db.cards.bulkGet(cardIds)
-  return cards.filter(
-    (c): c is NonNullable<typeof c> => c !== undefined && c.deckId === deckId,
-  )
+  const deckCards = await db.cards.where('deckId').equals(deckId).toArray()
+  const schedules = await db.schedules.bulkGet(deckCards.map((c) => c.id))
+  // Cards with no schedule are new — always due. Cards with a schedule are due if due <= now.
+  return deckCards.filter((_, i) => {
+    const schedule = schedules[i]
+    return !schedule || schedule.due <= now.getTime()
+  })
 }
 
 export const getDueCards = async (now: Date = new Date()) => {
-  const dueRecords = await db.schedules
-    .where('due')
-    .belowOrEqual(now.getTime())
-    .toArray()
-  const cardIds = dueRecords.map((r) => r.cardId)
-  const cards = await db.cards.bulkGet(cardIds)
-  return cards.filter((c): c is NonNullable<typeof c> => c !== undefined)
+  const allCards = await db.cards.toArray()
+  const schedules = await db.schedules.bulkGet(allCards.map((c) => c.id))
+  // Cards with no schedule are new — always due. Cards with a schedule are due if due <= now.
+  return allCards.filter((_, i) => {
+    const schedule = schedules[i]
+    return !schedule || schedule.due <= now.getTime()
+  })
 }

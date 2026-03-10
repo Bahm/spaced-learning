@@ -29,12 +29,19 @@ test.describe('Flashcard app', () => {
   })
 
   test('review a card with Good rating removes it from the due queue temporarily', async ({ page }) => {
-    await page.getByRole('button', { name: 'Add' }).click()
+    // Create a dedicated deck so we can review it in isolation
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Math')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByLabel('Deck').selectOption({ label: 'Math' })
     await page.getByLabel('Front').fill('What is 2 + 2?')
     await page.getByLabel('Back').fill('4')
     await page.getByRole('button', { name: 'Add Card' }).click()
 
-    await page.getByRole('button', { name: 'Review' }).click()
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.locator('li').filter({ hasText: 'Math' }).getByRole('button', { name: 'Review' }).click()
     await expect(page.getByText('What is 2 + 2?')).toBeVisible()
 
     await page.getByRole('button', { name: 'Show Answer' }).click()

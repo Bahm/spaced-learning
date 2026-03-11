@@ -80,7 +80,7 @@ cards:     id (PK), createdAt, deckId
 schedules: cardId (PK), due, state, last_review
 ```
 
-`Card.deckId` is required. `ensureDefaultDeck()` in `deckRepo.ts` is called on app startup (`App.tsx` `useEffect`) to seed a "Default" deck for fresh installs. The v3 Dexie upgrade migration also creates a "Default" deck and backfills `deckId` on all pre-existing cards.
+`Card.deckId` is required. `ensureDefaultDeck()` and `ensureYogaDeck()` in `deckRepo.ts` are called on app startup (`App.tsx` `useEffect`) to seed default decks for fresh installs. The v3 Dexie upgrade migration also creates a "Default" deck and backfills `deckId` on all pre-existing cards. To add a new seed deck: create `src/db/<name>SeedData.ts` exporting `SeedCard[]`, add an `ensure<Name>Deck()` function with a fixed ID + transaction guard in `deckRepo.ts`, and call it from `App.tsx` useEffect — no Dexie schema version bump needed.
 
 `ScheduleRecord` fields are **snake_case** to match ts-fsrs's own `FSRSCard` type (`elapsed_days`, `scheduled_days`, `learning_steps`, `last_review`). Never use camelCase for these. When adding a new Dexie index, use the exact snake_case field name.
 

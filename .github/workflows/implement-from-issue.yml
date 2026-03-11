@@ -1,0 +1,54 @@
+name: Implement Issue via Claude Code CLI
+
+# Triggered when the 'auto-implement' label is added to an issue.
+# Runs claude --dangerously-skip-permissions on the self-hosted runner
+# (this machine), which executes the full implement-issue TDD workflow
+# locally and opens a PR that closes the issue.
+#
+# Setup: see .github/RUNNER_SETUP.md
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  implement:
+    name: implement-issue #${{ github.event.issue.number }}
+    if: github.event.label.name == 'auto-implement'
+    runs-on: self-hosted
+    timeout-minutes: 60
+
+    steps:
+      - name: Comment on issue (starting)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🤖 **Claude Code** is starting work on this issue. A PR will be created when done.'
+            })
+
+      - name: Run implement-issue via Claude Code CLI
+        working-directory: /home/bahm/Projects/spaced-learning
+        run: |
+          export NVM_DIR="${HOME}/.nvm"
+          source "${NVM_DIR}/nvm.sh"
+          claude --dangerously-skip-permissions -p \
+            "implement issue #${{ github.event.issue.number }}"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Comment on issue (failure)
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **Claude Code** encountered an error while working on this issue. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
+            })

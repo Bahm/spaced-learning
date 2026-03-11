@@ -60,7 +60,7 @@ The core principle is **separation of pure logic from side effects**:
 - `src/db/` — Dexie/IndexedDB side effects. Never imported by `domain/`.
 - `src/hooks/` — React hooks for **reactive reads** via `useLiveQuery` from `dexie-react-hooks`.
 - `src/components/` — thin UI shells. No raw `db.*` calls; repo functions are fine.
-- `App.tsx` — tab switcher (Review / Decks / Cards / Add) + deck-review sub-view using a `View` union type. No router library.
+- `App.tsx` — tab switcher (Review / Decks) + deck-detail and deck-review sub-views using a `View` union type. No router library.
 
 **Read path**: hooks use `useLiveQuery` → Dexie re-fires on table mutation → component re-renders.
 **Write path**: components call repo functions directly (e.g. `addCard`, `upsertSchedule`, `deleteCard`) — no hook needed for writes.
@@ -119,12 +119,16 @@ When matching buttons by name, use `exact: true` if the label is a substring of 
 
 Avoid `page.getByText('partial')` when that string appears as a substring of other visible text — e.g. `getByText('Answer')` matches the "Show Answer" button. Prefer `getByRole` with an exact name, or assert on a more specific element.
 
+**`getByLabel` aria-label collision**: Playwright's `getByLabel` matches ANY element with a matching `aria-label` attribute (not just form controls) using substring matching. Nav buttons with `aria-label` values that are substrings of form field labels will collide. Design nav button `aria-label` values to avoid substrings of field labels (e.g. use `"← Decks"` not `"← Back"` when a "Back" textarea exists). Use `getByRole('combobox')` to target `<select>` elements specifically.
+
 `App.tsx` navigation uses a `View` union type — no router:
 
 ```typescript
+type Tab = 'review' | 'decks'
 type View =
-  | { type: 'tab'; tab: 'review' | 'decks' | 'cards' | 'add' }
+  | { type: 'tab'; tab: Tab }
   | { type: 'deck-review'; deckId: string; deckName: string }
+  | { type: 'deck-detail'; deckId: string; deckName: string }
 ```
 
-Tab nav is hidden in `deck-review` view; a back arrow navigates to the Decks tab.
+Tab nav (Review / Decks) is hidden in sub-views (`deck-review`, `deck-detail`); a back arrow (`aria-label="← Decks"`) navigates to the Decks tab. Cards are viewed and added from within a deck (`DeckDetail` component = `AddCardForm` + `CardList` scoped to a `deckId`). `AddCardForm` requires a `deckId` prop — no deck selector shown to the user.

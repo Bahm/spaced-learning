@@ -91,6 +91,9 @@ Before pushing, confirm the PR for this branch is still open (not already merged
 gh pr list --state all --head $(git branch --show-current)
 ```
 If status is MERGED, the branch is stale — create a new branch from main and start a new PR.
+
+When triggered from a GitHub Issue (i.e. an issue number was given in step 1), include `Closes #<N>` in the PR body so GitHub auto-closes the issue on merge.
+
 ```bash
 gh pr create --title "<concise title under 70 chars>" --body "$(cat <<'EOF'
 ## Summary
@@ -102,10 +105,14 @@ gh pr create --title "<concise title under 70 chars>" --body "$(cat <<'EOF'
 - [ ] E2E tests pass (`npx playwright test`)
 - [ ] Type-check clean (`npx tsc --noEmit`)
 
+Closes #<issue-number>
+
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF
 )"
 ```
+
+Omit the `Closes #N` line when there is no associated issue.
 
 ### 9. Consolidate learnings
 `npm run memory:sync` cannot run inside an active Claude Code session (it uses `claude -p` which would nest sessions). Instead, update MEMORY.md directly:

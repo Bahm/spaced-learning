@@ -115,11 +115,14 @@ EOF
 Omit the `Closes #N` line when there is no associated issue.
 
 ### 9. Consolidate learnings
+
+**This step is mandatory — it applies to every PR, including style-only or trivial changes.** Do not skip it.
+
 `npm run memory:sync` cannot run inside an active Claude Code session (it uses `claude -p` which would nest sessions). Instead, update MEMORY.md directly:
 
 1. Read `/home/bahm/.claude/projects/-home-bahm-Projects-spaced-learning/memory/MEMORY.md`
 2. Reflect on this implementation: errors hit and how they were fixed, architectural decisions, patterns discovered, pitfalls avoided
-3. Edit MEMORY.md — add only new, stable lessons not already captured. No duplicates. Keep it concise.
+3. Edit MEMORY.md — add only new, stable lessons not already captured. No duplicates. Keep it concise. Also update any stale facts (e.g. test counts).
 4. **Save lessons immediately** — if you identify a lesson during implementation (e.g. "the fix for the future is…"), write it to MEMORY.md and this SKILL.md in the same response. Stating a lesson without saving it means it will be forgotten.
 5. **Promote stable lessons to CLAUDE.md** — after updating MEMORY.md, scan all lessons and ask: is this a stable technical fact about the codebase (not workflow meta) that isn't already in CLAUDE.md? If yes, add it. The distinction:
    - **Promote to CLAUDE.md**: domain invariants, DB/API quirks, test patterns, coding constraints

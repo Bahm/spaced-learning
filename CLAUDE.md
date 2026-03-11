@@ -106,6 +106,7 @@ Rating enum: `Again=1, Hard=2, Good=3, Easy=4` (Manual=0 unused).
 - Cards with no schedule entry are treated as immediately due. `getDueCards`/`getDueCardsByDeck` use `bulkGet` on all card IDs and include any card whose schedule is missing or whose `due` timestamp is ≤ now.
 - React StrictMode (active in dev) runs effects twice. Any `useEffect` with side effects must be truly idempotent — guard with a check-then-write inside a single Dexie transaction, not a count check before it. See `ensureDefaultDeck()` for the canonical pattern.
 - When a `useEffect` event listener needs live state but should only register once, store the live values in refs and read them inside the stable handler. See `ReviewSession.tsx` keyboard shortcut handler for the canonical pattern.
+- Use `title={condition ? 'Explanation text' : undefined}` on `<button disabled>` elements to explain why they are disabled. Omitting the `title` when condition is false avoids a blank `title=""` attribute.
 
 ## Tests
 
@@ -116,6 +117,8 @@ E2E tests clear IndexedDB before each test via `indexedDB.databases()` + `delete
 The runtime IndexedDB database name is `'SpacedLearning'` (set in the Dexie constructor in `db.ts`). Use this when manually clearing storage: `indexedDB.deleteDatabase('SpacedLearning')`.
 
 When matching buttons by name, use `exact: true` if the label is a substring of another button's label (e.g. `getByRole('button', { name: 'Add', exact: true })` to avoid matching "Add Deck" too).
+
+For HTML attribute assertions (tooltips, ARIA attributes), use `toHaveAttribute('attrName', /pattern/)`. Do not try to assert CSS property values in Playwright — test behavior (attributes, text, visibility), not style.
 
 Avoid `page.getByText('partial')` when that string appears as a substring of other visible text — e.g. `getByText('Answer')` matches the "Show Answer" button. Prefer `getByRole` with an exact name, or assert on a more specific element.
 

@@ -15,6 +15,12 @@ description: >
 
 ## Workflow
 
+> ⛔ **BEFORE ANY `git commit` or `git push`**, run this check — no exceptions:
+> ```bash
+> gh pr list --state all --head $(git branch --show-current)
+> ```
+> If the result shows **MERGED**, the branch is dead. **Stop.** Do not commit. Do not push. Checkout `main`, pull, create a new branch, then continue. This rule exists because pushing to a merged branch strands commits silently — it happened twice in one session and the commits had to be cherry-picked to recover them.
+
 > **All 9 steps are mandatory on every PR** — including style-only, docs-only, and trivial fixes. The steps most tempting to skip on "simple" PRs (TDD in step 4, retrospection in step 9) are the ones where discipline pays off most.
 
 ### 1. Read the spec
@@ -81,7 +87,13 @@ bash -c 'export NVM_DIR="${HOME}/.nvm"; source "${NVM_DIR}/nvm.sh"; npx playwrig
 ```
 
 ### 7. Commit
-Stage specific files only (never `git add -A` — avoids accidentally staging `.env` or large binaries):
+**First**, verify the branch is not stale — this is the gate that prevents stranded commits:
+```bash
+gh pr list --state all --head $(git branch --show-current)
+# If MERGED → stop, checkout main, pull, create new branch. Do NOT proceed.
+```
+
+Then stage specific files only (never `git add -A` — avoids accidentally staging `.env` or large binaries):
 ```bash
 git status  # review ALL modified files — stage everything that belongs in this change
 git add src/domain/... tests/unit/... # etc. — include .claude/skills/ changes too if applicable

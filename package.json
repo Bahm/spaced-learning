@@ -4,7 +4,7 @@
   "description": "A flashcard app powered by the [FSRS](https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm) (Free Spaced Repetition Scheduler) algorithm.",
   "private": true,
   "scripts": {
-    "dev": "vite",
+    "dev": "fuser -k 5173/tcp 2>/dev/null; vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",

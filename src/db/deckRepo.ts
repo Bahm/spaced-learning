@@ -37,21 +37,23 @@ export const restoreDeck = async (deck: Deck, cards: Card[], schedules: Schedule
   })
 }
 
+export const DEFAULT_DECK_ID = 'default-vietnamese-deck'
+
 // Seeds the Vietnamese vocabulary deck on fresh installs — called on app startup.
+// Uses a fixed ID so concurrent calls (e.g. React StrictMode double-invoke) are idempotent.
 export const ensureDefaultDeck = async (): Promise<void> => {
-  const count = await db.decks.count()
-  if (count === 0) {
+  await db.transaction('rw', db.decks, db.cards, async () => {
+    const existing = await db.decks.get(DEFAULT_DECK_ID)
+    if (existing) return
     const deck: Deck = {
-      id: crypto.randomUUID(),
+      id: DEFAULT_DECK_ID,
       name: '1000 most common words in Vietnamese',
       createdAt: Date.now(),
     }
-    await db.transaction('rw', db.decks, db.cards, async () => {
-      await db.decks.add(deck)
-      const cards = VIETNAMESE_SEED_CARDS.map(({ front, back }) =>
-        createCard(front, back, deck.id),
-      )
-      await db.cards.bulkAdd(cards)
-    })
-  }
+    await db.decks.put(deck)
+    const cards = VIETNAMESE_SEED_CARDS.map(({ front, back }) =>
+      createCard(front, back, deck.id),
+    )
+    await db.cards.bulkAdd(cards)
+  })
 }

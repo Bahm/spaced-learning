@@ -55,6 +55,104 @@ test.describe('Flashcard app', () => {
     await page.getByRole('button', { name: 'Add' }).click()
     await page.getByRole('button', { name: 'Add Card' }).click()
     await expect(page.getByRole('alert')).toBeVisible()
+    // Also test front filled but back empty
+    await page.getByLabel('Front').fill('Some question')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+    await expect(page.getByRole('alert')).toContainText('Back')
+  })
+
+  test('add card form shows success feedback after adding', async ({ page }) => {
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByLabel('Front').fill('What is 1 + 1?')
+    await page.getByLabel('Back').fill('2')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+    await expect(page.getByRole('status')).toBeVisible()
+  })
+
+  test('empty deck name shows validation error', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+    await expect(page.getByRole('alert')).toBeVisible()
+  })
+
+  test('Review button is disabled for empty decks', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Empty Deck')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+    const emptyDeckRow = page.locator('li').filter({ hasText: 'Empty Deck' })
+    const reviewBtn = emptyDeckRow.getByRole('button', { name: 'Review' })
+    await expect(reviewBtn).toBeDisabled()
+  })
+
+  test('card count updates after add and delete', async ({ page }) => {
+    await page.getByRole('button', { name: 'Cards' }).click()
+    const heading = page.getByRole('heading', { name: /All Cards/ })
+    const initialText = await heading.textContent()
+    const initialCount = parseInt(initialText?.match(/\d+/)?.[0] ?? '0')
+
+    // Add a card
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByLabel('Front').fill('Test front')
+    await page.getByLabel('Back').fill('Test back')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+
+    await page.getByRole('button', { name: 'Cards' }).click()
+    await expect(heading).toContainText(String(initialCount + 1))
+
+    // Delete the card
+    await page.getByRole('button', { name: 'Delete card: Test front' }).click()
+    await expect(heading).toContainText(String(initialCount))
+  })
+
+  test('keyboard shortcut Space reveals answer', async ({ page }) => {
+    // Create an isolated deck for this test
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('KB Test')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByLabel('Deck').selectOption({ label: 'KB Test' })
+    await page.getByLabel('Front').fill('Press space')
+    await page.getByLabel('Back').fill('Done')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.locator('li').filter({ hasText: 'KB Test' }).getByRole('button', { name: 'Review' }).click()
+    await expect(page.getByText('Press space')).toBeVisible()
+
+    await page.keyboard.press('Space')
+    await expect(page.getByText('Done')).toBeVisible()
+  })
+
+  test('keyboard shortcuts 1-4 rate cards', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('KB Rate')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByLabel('Deck').selectOption({ label: 'KB Rate' })
+    await page.getByLabel('Front').fill('Rate me')
+    await page.getByLabel('Back').fill('Answer')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.locator('li').filter({ hasText: 'KB Rate' }).getByRole('button', { name: 'Review' }).click()
+    // Wait for the card to appear, then press Space to reveal
+    await expect(page.getByText('Rate me')).toBeVisible()
+    await page.keyboard.press('Space')
+    // Rating buttons appear after reveal (more specific than checking 'Answer' text which matches 'Show Answer' too)
+    await expect(page.getByRole('button', { name: 'Good' })).toBeVisible()
+
+    await page.keyboard.press('3')
+    await expect(page.getByText('All done!')).toBeVisible()
+  })
+
+  test('mobile nav shows all tabs at 390px width', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    const tabs = ['Review', 'Decks', 'Cards', 'Add']
+    for (const tab of tabs) {
+      await expect(page.getByRole('button', { name: tab })).toBeVisible()
+    }
   })
 
   test('delete a card then undo restores it', async ({ page }) => {

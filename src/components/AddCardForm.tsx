@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { createCard } from '../domain/cards'
 import { addCard } from '../db/cardRepo'
 import { upsertSchedule } from '../db/reviewRepo'
@@ -11,6 +11,14 @@ export const AddCardForm = () => {
   const [back, setBack] = useState('')
   const [deckId, setDeckId] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (successTimer.current) clearTimeout(successTimer.current)
+    }
+  }, [])
 
   // Default to the first deck when decks load
   const selectedDeckId = deckId || decks[0]?.id || ''
@@ -28,6 +36,9 @@ export const AddCardForm = () => {
       await upsertSchedule(card.id, createNewSchedule())
       setFront('')
       setBack('')
+      setSuccess(true)
+      if (successTimer.current) clearTimeout(successTimer.current)
+      successTimer.current = setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add card')
     }
@@ -37,6 +48,7 @@ export const AddCardForm = () => {
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <h2>Add Card</h2>
       {error && <p style={{ color: 'red' }} role="alert">{error}</p>}
+      {success && <p style={{ color: '#27ae60' }} role="status">Card added!</p>}
       <label>
         Deck
         <select

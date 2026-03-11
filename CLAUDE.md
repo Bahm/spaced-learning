@@ -100,17 +100,24 @@ Rating enum: `Again=1, Hard=2, Good=3, Easy=4` (Manual=0 unused).
 - Domain functions return new objects — never mutate.
 - `useLiveQuery` returns `undefined` on first render; always provide a default (`?? []` or `?? 0`).
 - `upsertSchedule` uses `db.schedules.put()` — idempotent.
-- Deleting a card also deletes its schedule in a single Dexie transaction. Deleting a deck deletes all its cards and schedules too.
+- Deleting a card also deletes its schedule in a single Dexie transaction. Deleting a deck deletes all its cards and schedules too (schedules → cards → deck, inside one `db.transaction('rw', ...)`).
 - `useReview(deckId?)` accepts an optional `deckId` — when provided it calls `getDueCardsByDeck`, otherwise `getDueCards`.
 - `noUncheckedIndexedAccess` is enabled — array/index access returns `T | undefined`; always null-check.
+- Cards with no schedule entry are treated as immediately due. `getDueCards`/`getDueCardsByDeck` use `bulkGet` on all card IDs and include any card whose schedule is missing or whose `due` timestamp is ≤ now.
+- React StrictMode (active in dev) runs effects twice. Any `useEffect` with side effects must be truly idempotent — guard with a check-then-write inside a single Dexie transaction, not a count check before it. See `ensureDefaultDeck()` for the canonical pattern.
+- When a `useEffect` event listener needs live state but should only register once, store the live values in refs and read them inside the stable handler. See `ReviewSession.tsx` keyboard shortcut handler for the canonical pattern.
 
 ## Tests
 
 Unit tests cover `src/domain/` only (pure functions). E2E tests cover full user flows in Chromium.
 
-E2E tests clear IndexedDB before each test via `indexedDB.databases()` + `deleteDatabase`, then `page.reload()`. After reload, always `waitForTimeout(200)` before asserting — `ensureDefaultDeck()` runs asynchronously on mount and the deck must exist before any card operation. The Playwright `webServer` config auto-starts the dev server if not already running.
+E2E tests clear IndexedDB before each test via `indexedDB.databases()` + `deleteDatabase`, then `page.reload()`. After reload, always `waitForTimeout(1000)` before asserting — `ensureDefaultDeck()` runs asynchronously on mount and the 1000-card seed `bulkAdd` takes longer than a simple insert. The Playwright `webServer` config auto-starts the dev server if not already running.
+
+The runtime IndexedDB database name is `'SpacedLearning'` (set in the Dexie constructor in `db.ts`). Use this when manually clearing storage: `indexedDB.deleteDatabase('SpacedLearning')`.
 
 When matching buttons by name, use `exact: true` if the label is a substring of another button's label (e.g. `getByRole('button', { name: 'Add', exact: true })` to avoid matching "Add Deck" too).
+
+Avoid `page.getByText('partial')` when that string appears as a substring of other visible text — e.g. `getByText('Answer')` matches the "Show Answer" button. Prefer `getByRole` with an exact name, or assert on a more specific element.
 
 `App.tsx` navigation uses a `View` union type — no router:
 

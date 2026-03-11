@@ -5,8 +5,10 @@ description: >
   project. Use this whenever the user says "implement issue #N", "work on issue", "add feature X",
   "fix bug Y", or describes any change to make to the codebase. Follows strict TDD: failing tests
   first, then implementation, then full verification before committing and creating a PR.
+  After each session, promotes stable lessons from MEMORY.md into CLAUDE.md so project knowledge
+  accumulates in the canonical docs rather than only in personal memory.
   Always use this skill rather than ad-hoc implementation — it ensures the TDD workflow,
-  correct layering, and automated verification are never skipped.
+  correct layering, automated verification, and living documentation are never skipped.
 ---
 
 # Implement Issue
@@ -112,7 +114,10 @@ EOF
 2. Reflect on this implementation: errors hit and how they were fixed, architectural decisions, patterns discovered, pitfalls avoided
 3. Edit MEMORY.md — add only new, stable lessons not already captured. No duplicates. Keep it concise.
 4. **Save lessons immediately** — if you identify a lesson during implementation (e.g. "the fix for the future is…"), write it to MEMORY.md and this SKILL.md in the same response. Stating a lesson without saving it means it will be forgotten.
-5. Ask: **what additional steps could make this workflow more automated or effective?** If you have concrete ideas not already in MEMORY.md, add a brief "Workflow improvement ideas" section.
+5. **Promote stable lessons to CLAUDE.md** — after updating MEMORY.md, scan all lessons and ask: is this a stable technical fact about the codebase (not workflow meta) that isn't already in CLAUDE.md? If yes, add it. The distinction:
+   - **Promote to CLAUDE.md**: domain invariants, DB/API quirks, test patterns, coding constraints
+   - **Keep in MEMORY.md only**: git workflow rules, session-management meta, Claude-specific operating procedures
+6. Ask: **what additional steps could make this workflow more automated or effective?** If you have concrete ideas not already in MEMORY.md, add a brief "Workflow improvement ideas" section.
 
 ---
 

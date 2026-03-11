@@ -54,7 +54,7 @@ export default function App() {
               style={{
                 flex: 1,
                 padding: '10px',
-                background: activeTab === id ? '#4a4a8a' : '#2a2a3e',
+                background: activeTab === id ? '#4a4a8a' : '#37375a',
                 border: 'none',
                 borderRadius: '4px',
                 color: '#fff',

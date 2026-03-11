@@ -63,7 +63,7 @@ export const AddCardForm = ({ deckId }: Props) => {
           style={{ display: 'block', width: '100%', marginTop: '4px' }}
         />
       </label>
-      <button type="submit">Add Card</button>
+      <button type="submit" style={{ padding: '10px', background: '#4a4a8a', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>Add Card</button>
     </form>
   )
 }

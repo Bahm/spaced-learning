@@ -132,6 +132,15 @@ test.describe('Flashcard app', () => {
     await expect(emptyDeckRow.getByRole('button', { name: 'Review' })).toBeDisabled()
   })
 
+  test('disabled Review button has a tooltip explaining why', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Tooltip Test')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+    const emptyDeckRow = page.locator('li').filter({ hasText: 'Tooltip Test' })
+    const reviewBtn = emptyDeckRow.getByRole('button', { name: 'Review' })
+    await expect(reviewBtn).toHaveAttribute('title', /cards/i)
+  })
+
   test('delete a deck requires confirmation and cancel keeps it', async ({ page }) => {
     await page.getByRole('button', { name: 'Decks' }).click()
     await page.getByLabel('Deck name').fill('History')

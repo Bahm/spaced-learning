@@ -61,7 +61,7 @@ export const ReviewSession = ({ deckId }: Props = {}) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#888' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#aaa' }}>
         <span>{remaining} card{remaining !== 1 ? 's' : ''} remaining</span>
         {reviewedToday > 0 && <span>Reviewed today: {reviewedToday}</span>}
       </div>
@@ -78,7 +78,7 @@ export const ReviewSession = ({ deckId }: Props = {}) => {
       </div>
 
       {!isRevealed ? (
-        <button onClick={reveal} style={{ padding: '12px' }}>
+        <button onClick={reveal} style={{ padding: '12px', background: '#4a4a8a', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>
           Show Answer
         </button>
       ) : (

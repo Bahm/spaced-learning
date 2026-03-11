@@ -32,7 +32,7 @@ export const CardList = ({ deckId, deckName }: Props) => {
     }
     const snapshot = await getCardSnapshot(id)
     await deleteCard(id)
-    const timeoutId = setTimeout(() => setUndo(null), 5000)
+    const timeoutId = setTimeout(() => setUndo(null), 7000)
     setUndo({ ...snapshot, timeoutId })
   }
 
@@ -61,12 +61,12 @@ export const CardList = ({ deckId, deckName }: Props) => {
           >
             <div>
               <strong>{card.front}</strong>
-              <span style={{ color: '#888', marginLeft: '8px' }}>→ {card.back}</span>
+              <span style={{ color: '#aaa', marginLeft: '8px' }}>→ {card.back}</span>
             </div>
             <button
               onClick={() => handleDelete(card.id)}
               aria-label={`Delete card: ${card.front}`}
-              style={{ background: 'none', border: '1px solid #555', cursor: 'pointer', padding: '4px 8px' }}
+              style={{ background: 'none', border: '1px solid #555', cursor: 'pointer', padding: '4px 8px', color: '#e74c3c' }}
             >
               ✕
             </button>

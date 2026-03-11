@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { ReviewSession } from './components/ReviewSession'
 import { DeckList } from './components/DeckList'
 import { DeckDetail } from './components/DeckDetail'
-import { ensureDefaultDeck } from './db/deckRepo'
+import { ensureDefaultDeck, ensureYogaDeck } from './db/deckRepo'
 
 type Tab = 'review' | 'decks'
 
@@ -21,6 +21,7 @@ export default function App() {
 
   useEffect(() => {
     void ensureDefaultDeck()
+    void ensureYogaDeck()
   }, [])
 
   const activeTab = view.type === 'tab' ? view.tab : null

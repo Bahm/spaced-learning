@@ -2,6 +2,7 @@ import { db, type ScheduleRecord } from './db'
 import type { Card, Deck } from '../domain/types'
 import { createCard } from '../domain/cards'
 import { VIETNAMESE_SEED_CARDS } from './seedData'
+import { YOGA_SEED_CARDS } from './yogaSeedData'
 
 export const addDeck = (deck: Deck): Promise<string> => db.decks.add(deck)
 
@@ -38,6 +39,7 @@ export const restoreDeck = async (deck: Deck, cards: Card[], schedules: Schedule
 }
 
 export const DEFAULT_DECK_ID = 'default-vietnamese-deck'
+export const YOGA_DECK_ID = 'default-yoga-deck'
 
 // Seeds the Vietnamese vocabulary deck on fresh installs — called on app startup.
 // Uses a fixed ID so concurrent calls (e.g. React StrictMode double-invoke) are idempotent.
@@ -52,6 +54,24 @@ export const ensureDefaultDeck = async (): Promise<void> => {
     }
     await db.decks.put(deck)
     const cards = VIETNAMESE_SEED_CARDS.map(({ front, back }) =>
+      createCard(front, back, deck.id),
+    )
+    await db.cards.bulkAdd(cards)
+  })
+}
+
+// Seeds the yoga vocabulary deck on fresh installs — called on app startup.
+export const ensureYogaDeck = async (): Promise<void> => {
+  await db.transaction('rw', db.decks, db.cards, async () => {
+    const existing = await db.decks.get(YOGA_DECK_ID)
+    if (existing) return
+    const deck: Deck = {
+      id: YOGA_DECK_ID,
+      name: 'Vietnamese yoga vocabulary',
+      createdAt: Date.now(),
+    }
+    await db.decks.put(deck)
+    const cards = YOGA_SEED_CARDS.map(({ front, back }) =>
       createCard(front, back, deck.id),
     )
     await db.cards.bulkAdd(cards)

@@ -15,6 +15,8 @@ description: >
 
 ## Workflow
 
+> **All 9 steps are mandatory on every PR** — including style-only, docs-only, and trivial fixes. The steps most tempting to skip on "simple" PRs (TDD in step 4, retrospection in step 9) are the ones where discipline pays off most.
+
 ### 1. Read the spec
 - If given an issue number: `gh issue view <N>` to read title + body
 - If given a description: treat that as the spec
@@ -46,6 +48,7 @@ This is non-negotiable. Tests define the contract; implementation satisfies it.
 - **Domain logic changes** → unit test in `tests/unit/<domain-file>.test.ts`
 - **UI/flow changes** → E2E scenario in `tests/e2e/flashcards.spec.ts`
 - **Both** if the change spans layers
+- **Pure style/CSS changes** — not exempt. Write at least one E2E test asserting a behavioral property of the affected element: an attribute (`title`, `aria-label`, `disabled`), visibility, or role. If a change is truly behavior-free (e.g. a color value), write a minimal smoke test that exercises the affected element so future regressions are caught. "There's nothing to test" is almost never true — a missing `title` attribute on a disabled button is a behavioral gap that an E2E test can catch.
 
 Run to confirm they fail (passing tests at this stage means the feature already exists or the test is wrong):
 ```bash
@@ -128,6 +131,13 @@ Omit the `Closes #N` line when there is no associated issue.
    - **Promote to CLAUDE.md**: domain invariants, DB/API quirks, test patterns, coding constraints
    - **Keep in MEMORY.md only**: git workflow rules, session-management meta, Claude-specific operating procedures
 6. **Improve this skill via `/skill-creator`** — if any lessons from this session apply to the implement-issue *workflow itself* (a step that was skipped, a pattern that should be enforced, an instruction that was unclear), invoke `/skill-creator` to apply them as targeted edits to this SKILL.md. You don't need the full eval loop every time — a focused edit pass is enough for small improvements. Use the full eval loop when making substantial structural changes. The goal: the skill gets slightly better after every session, not only when problems are explicitly reported.
+7. **Commit and push retrospection changes** — the edits above produce real file changes (MEMORY.md, CLAUDE.md, SKILL.md). Stage and commit them so they land on `main` when the PR merges. Use a `docs:` or `chore:` prefix:
+   ```bash
+   git add CLAUDE.md .claude/skills/implement-issue/SKILL.md
+   # MEMORY.md lives outside the repo — no need to stage it
+   git commit -m "docs: retrospection from <branch-name>"
+   git push
+   ```
 
 ---
 

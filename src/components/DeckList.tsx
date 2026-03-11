@@ -6,6 +6,7 @@ import type { Card, Deck } from '../domain/types'
 import type { ScheduleRecord } from '../db/db'
 
 interface Props {
+  readonly onOpenDeck: (deckId: string, deckName: string) => void
   readonly onReviewDeck: (deckId: string, deckName: string) => void
 }
 
@@ -16,7 +17,7 @@ interface UndoState {
   timeoutId: ReturnType<typeof setTimeout>
 }
 
-export const DeckList = ({ onReviewDeck }: Props) => {
+export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
   const deckStats = useDeckStats()
   const [newName, setNewName] = useState('')
   const [error, setError] = useState('')
@@ -110,6 +111,12 @@ export const DeckList = ({ onReviewDeck }: Props) => {
                   )}
                 </div>
               </div>
+              <button
+                onClick={() => onOpenDeck(deck.id, deck.name)}
+                style={{ padding: '6px 14px', background: '#2980b9', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}
+              >
+                Cards
+              </button>
               <button
                 onClick={() => onReviewDeck(deck.id, deck.name)}
                 disabled={dueCount === 0}

@@ -3,13 +3,14 @@ import { createCard } from '../domain/cards'
 import { addCard } from '../db/cardRepo'
 import { upsertSchedule } from '../db/reviewRepo'
 import { createNewSchedule } from '../domain/scheduler'
-import { useDecks } from '../hooks/useDecks'
 
-export const AddCardForm = () => {
-  const decks = useDecks()
+interface Props {
+  readonly deckId: string
+}
+
+export const AddCardForm = ({ deckId }: Props) => {
   const [front, setFront] = useState('')
   const [back, setBack] = useState('')
-  const [deckId, setDeckId] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -20,18 +21,11 @@ export const AddCardForm = () => {
     }
   }, [])
 
-  // Default to the first deck when decks load
-  const selectedDeckId = deckId || decks[0]?.id || ''
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!selectedDeckId) {
-      setError('Create a deck first in the Decks tab')
-      return
-    }
     try {
-      const card = createCard(front, back, selectedDeckId)
+      const card = createCard(front, back, deckId)
       await addCard(card)
       await upsertSchedule(card.id, createNewSchedule())
       setFront('')
@@ -46,25 +40,9 @@ export const AddCardForm = () => {
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <h2>Add Card</h2>
-      {error && <p style={{ color: 'red' }} role="alert">{error}</p>}
-      {success && <p style={{ color: '#27ae60' }} role="status">Card added!</p>}
-      <label>
-        Deck
-        <select
-          value={selectedDeckId}
-          onChange={(e) => setDeckId(e.target.value)}
-          style={{ display: 'block', width: '100%', marginTop: '4px', padding: '8px', background: '#1e1e2e', border: '1px solid #444', borderRadius: '4px', color: '#e0e0e0' }}
-        >
-          {decks.length === 0 ? (
-            <option value="">No decks — create one first</option>
-          ) : (
-            decks.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))
-          )}
-        </select>
-      </label>
+      <h3 style={{ margin: 0 }}>Add Card</h3>
+      {error && <p style={{ color: 'red', margin: 0 }} role="alert">{error}</p>}
+      {success && <p style={{ color: '#27ae60', margin: 0 }} role="status">Card added!</p>}
       <label>
         Front
         <textarea

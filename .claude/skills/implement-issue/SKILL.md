@@ -127,7 +127,7 @@ Omit the `Closes #N` line when there is no associated issue.
 5. **Promote stable lessons to CLAUDE.md** — after updating MEMORY.md, scan all lessons and ask: is this a stable technical fact about the codebase (not workflow meta) that isn't already in CLAUDE.md? If yes, add it. The distinction:
    - **Promote to CLAUDE.md**: domain invariants, DB/API quirks, test patterns, coding constraints
    - **Keep in MEMORY.md only**: git workflow rules, session-management meta, Claude-specific operating procedures
-6. Ask: **what additional steps could make this workflow more automated or effective?** If you have concrete ideas not already in MEMORY.md, add a brief "Workflow improvement ideas" section.
+6. **Improve this skill via `/skill-creator`** — if any lessons from this session apply to the implement-issue *workflow itself* (a step that was skipped, a pattern that should be enforced, an instruction that was unclear), invoke `/skill-creator` to apply them as targeted edits to this SKILL.md. You don't need the full eval loop every time — a focused edit pass is enough for small improvements. Use the full eval loop when making substantial structural changes. The goal: the skill gets slightly better after every session, not only when problems are explicitly reported.
 
 ---
 

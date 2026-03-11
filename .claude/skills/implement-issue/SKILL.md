@@ -28,13 +28,18 @@ description: >
 - If the change touches domain logic, DB schema, or scheduling: re-read the relevant source files
 
 ### 3. Create a feature branch
+**First, check the current branch status** — before doing anything else, run:
+```bash
+git branch --show-current
+gh pr list --state all --head $(git branch --show-current)
+```
+If the current branch has a MERGED PR, it is stale. Do not commit or push to it. Checkout main, pull, and create a fresh branch. This check must happen at the start of every session, not just before committing.
+
 Always branch from an up-to-date `main` — never from another feature branch, even if one is already checked out. Pull first, then check remaining commits:
 ```bash
 bash -c 'export NVM_DIR="${HOME}/.nvm"; source "${NVM_DIR}/nvm.sh"; git checkout main && git pull && git checkout -b feature/<kebab-case-title>'
 ```
 Keep branch name short (3-5 words max). Use `fix/` prefix for bugs, `feature/` for new functionality.
-
-Each PR must have its own branch. If you are about to commit and the current branch already has an open PR, stop and create a new branch from `main` first.
 
 **Before creating any PR**, verify no PR already exists for this branch:
 ```bash

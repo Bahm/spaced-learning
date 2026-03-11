@@ -80,7 +80,7 @@ export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
           aria-label="Deck name"
           style={{ flex: 1, padding: '8px', background: '#1e1e2e', border: '1px solid #444', borderRadius: '4px', color: '#e0e0e0' }}
         />
-        <button type="submit" style={{ padding: '8px 16px' }}>Add Deck</button>
+        <button type="submit" style={{ padding: '8px 16px', background: '#4a4a8a', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}>Add Deck</button>
       </form>
       {error && <p style={{ color: 'red', margin: 0 }} role="alert">{error}</p>}
 
@@ -102,7 +102,7 @@ export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
             >
               <div style={{ flex: 1 }}>
                 <strong>{deck.name}</strong>
-                <div style={{ color: '#888', fontSize: '0.85rem', marginTop: '2px' }}>
+                <div style={{ color: '#aaa', fontSize: '0.85rem', marginTop: '2px' }}>
                   {totalCount} card{totalCount !== 1 ? 's' : ''}
                   {dueCount > 0 && (
                     <span style={{ color: '#27ae60', marginLeft: '8px' }}>
@@ -120,6 +120,7 @@ export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
               <button
                 onClick={() => onReviewDeck(deck.id, deck.name)}
                 disabled={dueCount === 0}
+                title={dueCount === 0 ? 'Add cards to this deck before reviewing' : undefined}
                 style={{
                   padding: '6px 14px',
                   background: dueCount > 0 ? '#27ae60' : '#333',
@@ -134,7 +135,7 @@ export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
               <button
                 onClick={() => setPendingDeleteId(deck.id)}
                 aria-label={`Delete deck ${deck.name}`}
-                style={{ background: 'none', border: '1px solid #555', borderRadius: '4px', padding: '6px 10px', cursor: 'pointer', color: '#aaa' }}
+                style={{ background: 'none', border: '1px solid #555', borderRadius: '4px', padding: '6px 10px', cursor: 'pointer', color: '#ccc' }}
               >
                 ✕
               </button>

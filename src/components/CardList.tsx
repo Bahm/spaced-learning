@@ -10,8 +10,13 @@ interface UndoState {
   timeoutId: ReturnType<typeof setTimeout>
 }
 
-export const CardList = () => {
-  const cards = useCards()
+interface Props {
+  readonly deckId: string
+  readonly deckName: string
+}
+
+export const CardList = ({ deckId, deckName }: Props) => {
+  const cards = useCards(deckId)
   const [undo, setUndo] = useState<UndoState | null>(null)
 
   useEffect(() => {
@@ -38,13 +43,10 @@ export const CardList = () => {
     setUndo(null)
   }
 
-  if (cards.length === 0 && !undo) {
-    return <p>No cards yet. Add some!</p>
-  }
-
   return (
     <div>
-      <h2>All Cards ({cards.length})</h2>
+      <h2>{deckName} — Cards ({cards.length})</h2>
+      {cards.length === 0 && !undo && <p style={{ color: '#888' }}>No cards yet. Add one above.</p>}
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {cards.map((card) => (
           <li

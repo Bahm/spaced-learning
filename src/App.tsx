@@ -1,21 +1,19 @@
 import { useState, useEffect } from 'react'
 import { ReviewSession } from './components/ReviewSession'
-import { CardList } from './components/CardList'
-import { AddCardForm } from './components/AddCardForm'
 import { DeckList } from './components/DeckList'
+import { DeckDetail } from './components/DeckDetail'
 import { ensureDefaultDeck } from './db/deckRepo'
 
-type Tab = 'review' | 'decks' | 'cards' | 'add'
+type Tab = 'review' | 'decks'
 
 type View =
   | { type: 'tab'; tab: Tab }
   | { type: 'deck-review'; deckId: string; deckName: string }
+  | { type: 'deck-detail'; deckId: string; deckName: string }
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'review', label: 'Review' },
   { id: 'decks', label: 'Decks' },
-  { id: 'cards', label: 'Cards' },
-  { id: 'add', label: 'Add' },
 ]
 
 export default function App() {
@@ -26,25 +24,27 @@ export default function App() {
   }, [])
 
   const activeTab = view.type === 'tab' ? view.tab : null
+  const isSubView = view.type === 'deck-review' || view.type === 'deck-detail'
+  const subViewName = isSubView ? view.deckName : ''
 
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto', padding: '16px', fontFamily: 'sans-serif' }}>
       <header style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {view.type === 'deck-review' && (
+        {isSubView && (
           <button
             onClick={() => setView({ type: 'tab', tab: 'decks' })}
+            aria-label="← Decks"
             style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '1.2rem', padding: 0 }}
-            aria-label="Back to decks"
           >
             ←
           </button>
         )}
         <h1 style={{ margin: 0, fontSize: '1.5rem' }}>
-          {view.type === 'deck-review' ? view.deckName : 'Spaced Learning'}
+          {isSubView ? subViewName : 'Spaced Learning'}
         </h1>
       </header>
 
-      {view.type === 'tab' && (
+      {!isSubView && (
         <nav style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
           {TABS.map(({ id, label }) => (
             <button
@@ -70,12 +70,14 @@ export default function App() {
 
       <main>
         {view.type === 'deck-review' && <ReviewSession deckId={view.deckId} />}
+        {view.type === 'deck-detail' && <DeckDetail deckId={view.deckId} deckName={view.deckName} />}
         {view.type === 'tab' && activeTab === 'review' && <ReviewSession />}
         {view.type === 'tab' && activeTab === 'decks' && (
-          <DeckList onReviewDeck={(deckId, deckName) => setView({ type: 'deck-review', deckId, deckName })} />
+          <DeckList
+            onOpenDeck={(deckId, deckName) => setView({ type: 'deck-detail', deckId, deckName })}
+            onReviewDeck={(deckId, deckName) => setView({ type: 'deck-review', deckId, deckName })}
+          />
         )}
-        {view.type === 'tab' && activeTab === 'cards' && <CardList />}
-        {view.type === 'tab' && activeTab === 'add' && <AddCardForm />}
       </main>
     </div>
   )

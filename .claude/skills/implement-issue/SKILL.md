@@ -24,13 +24,19 @@ description: >
 - If the change touches domain logic, DB schema, or scheduling: re-read the relevant source files
 
 ### 3. Create a feature branch
-Always branch from an up-to-date `main` — never from another feature branch, even if one is already checked out:
+Always branch from an up-to-date `main` — never from another feature branch, even if one is already checked out. Pull first, then check remaining commits:
 ```bash
 bash -c 'export NVM_DIR="${HOME}/.nvm"; source "${NVM_DIR}/nvm.sh"; git checkout main && git pull && git checkout -b feature/<kebab-case-title>'
 ```
 Keep branch name short (3-5 words max). Use `fix/` prefix for bugs, `feature/` for new functionality.
 
 Each PR must have its own branch. If you are about to commit and the current branch already has an open PR, stop and create a new branch from `main` first.
+
+**Before creating any PR**, verify no PR already exists for this branch:
+```bash
+gh pr list --state all --head $(git branch --show-current)
+```
+If a PR is MERGED or OPEN, do not create another one.
 
 ### 4. Write failing tests FIRST (TDD)
 This is non-negotiable. Tests define the contract; implementation satisfies it.
@@ -67,7 +73,8 @@ bash -c 'export NVM_DIR="${HOME}/.nvm"; source "${NVM_DIR}/nvm.sh"; npx playwrig
 ### 7. Commit
 Stage specific files only (never `git add -A` — avoids accidentally staging `.env` or large binaries):
 ```bash
-git add src/domain/... tests/unit/... # etc.
+git status  # review ALL modified files — stage everything that belongs in this change
+git add src/domain/... tests/unit/... # etc. — include .claude/skills/ changes too if applicable
 git commit -m "$(cat <<'EOF'
 feat: <what changed and why in one sentence>
 
@@ -77,6 +84,11 @@ EOF
 ```
 
 ### 8. Create PR
+Before pushing, confirm the PR for this branch is still open (not already merged):
+```bash
+gh pr list --state all --head $(git branch --show-current)
+```
+If status is MERGED, the branch is stale — create a new branch from main and start a new PR.
 ```bash
 gh pr create --title "<concise title under 70 chars>" --body "$(cat <<'EOF'
 ## Summary
@@ -99,7 +111,8 @@ EOF
 1. Read `/home/bahm/.claude/projects/-home-bahm-Projects-spaced-learning/memory/MEMORY.md`
 2. Reflect on this implementation: errors hit and how they were fixed, architectural decisions, patterns discovered, pitfalls avoided
 3. Edit MEMORY.md — add only new, stable lessons not already captured. No duplicates. Keep it concise.
-4. Ask: **what additional steps could make this workflow more automated or effective?** If you have concrete ideas not already in MEMORY.md, add a brief "Workflow improvement ideas" section.
+4. **Save lessons immediately** — if you identify a lesson during implementation (e.g. "the fix for the future is…"), write it to MEMORY.md and this SKILL.md in the same response. Stating a lesson without saving it means it will be forgotten.
+5. Ask: **what additional steps could make this workflow more automated or effective?** If you have concrete ideas not already in MEMORY.md, add a brief "Workflow improvement ideas" section.
 
 ---
 

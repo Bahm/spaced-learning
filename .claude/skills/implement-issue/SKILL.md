@@ -144,9 +144,9 @@ Omit the `Closes #N` line when there is no associated issue.
 2. Reflect on this implementation: errors hit and how they were fixed, architectural decisions, patterns discovered, pitfalls avoided
 3. Edit MEMORY.md — add only new, stable lessons not already captured. No duplicates. Keep it concise. Also update any stale facts (e.g. test counts).
 4. **Save lessons immediately** — if you identify a lesson during implementation (e.g. "the fix for the future is…"), write it to MEMORY.md and this SKILL.md in the same response. Stating a lesson without saving it means it will be forgotten.
-5. **Promote stable lessons to CLAUDE.md** — after updating MEMORY.md, scan all lessons and ask: is this a stable technical fact about the codebase (not workflow meta) that isn't already in CLAUDE.md? If yes, add it. The distinction:
-   - **Promote to CLAUDE.md**: domain invariants, DB/API quirks, test patterns, coding constraints
-   - **Keep in MEMORY.md only**: git workflow rules, session-management meta, Claude-specific operating procedures
+5. **Promote stable lessons to CLAUDE.md** — after updating MEMORY.md, scan all lessons and ask: would this lesson help during ad-hoc work when no skill is loaded? If yes, it belongs in CLAUDE.md (which is always in context), not just in a skill or MEMORY.md. A lesson saved only to a skill is invisible when the mistake happens outside that skill's scope. The distinction:
+   - **Promote to CLAUDE.md**: anything that applies to general work — git safety checks, domain invariants, DB/API quirks, test patterns, coding constraints
+   - **Keep in MEMORY.md only**: lessons that are purely about Claude's internal operating procedures and wouldn't affect code or git actions
 6. **Improve this skill via `/skill-creator`** — if any lessons from this session apply to the implement-issue *workflow itself* (a step that was skipped, a pattern that should be enforced, an instruction that was unclear), invoke `/skill-creator` to apply them as targeted edits to this SKILL.md. You don't need the full eval loop every time — a focused edit pass is enough for small improvements. Use the full eval loop when making substantial structural changes. The goal: the skill gets slightly better after every session, not only when problems are explicitly reported.
 7. **Commit and push retrospection changes** — the edits above produce real file changes (MEMORY.md, CLAUDE.md, SKILL.md). Stage and commit them so they land on `main` when the PR merges. Use a `docs:` or `chore:` prefix:
    ```bash

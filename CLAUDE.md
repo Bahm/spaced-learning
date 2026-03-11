@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git safety — merged-branch check
+
+Before ANY `git commit` or `git push`, run: `gh pr list --state all --head $(git branch --show-current)`. If MERGED, **stop** — checkout main, pull, create a new branch. Pushing to a merged branch strands commits silently.
+
 ## Automation layer
 
 This project is configured for (mostly) hands-off AI development. Key automation:

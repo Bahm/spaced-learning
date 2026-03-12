@@ -16,6 +16,7 @@ This project is configured for (mostly) hands-off AI development. Key automation
 | Pre-commit hook | `.git/hooks/pre-commit` | Blocks commits with type errors or failing unit tests |
 | CI workflow | `.github/workflows/ci.yml` | Runs type-check + unit tests + E2E + build on every push/PR |
 | implement-issue skill | `.claude/skills/implement-issue/` | End-to-end TDD workflow: issue → tests → implementation → commit → PR |
+| Auto-implement workflow | `.github/workflows/implement-from-issue.yml` | Label issue `auto-implement` → Claude CLI runs on self-hosted runner → PR created. Includes PR-existence verification step. |
 | Memory consolidation | `.claude/scripts/post-session.sh` | Run `npm run memory:sync` at session end to extract lessons + ask "what could be more automated?" |
 
 **Intended workflow:**

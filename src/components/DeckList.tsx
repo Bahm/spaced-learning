@@ -1,7 +1,17 @@
 import { useState, useEffect, type FormEvent } from 'react'
-import { createDeck, DeckValidationError } from '../domain/decks'
-import { addDeck, deleteDeck, getDeckSnapshot, restoreDeck } from '../db/deckRepo'
-import { useDeckStats } from '../hooks/useDecks'
+import { createDeck, DeckValidationError, PUBLIC_DECK_CATALOG } from '../domain/decks'
+import {
+  addDeck,
+  permanentlyDeleteDeck,
+  getDeckSnapshot,
+  restoreDeck,
+  archiveDeck,
+  unarchiveDeck,
+  uninstallPublicDeck,
+  installPublicDeck,
+  isPublicDeck,
+} from '../db/deckRepo'
+import { useDeckStats, useArchivedDecks, useUninstalledPublicDeckIds } from '../hooks/useDecks'
 import type { Card, Deck } from '../domain/types'
 import type { ScheduleRecord } from '../db/db'
 
@@ -19,6 +29,8 @@ interface UndoState {
 
 export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
   const deckStats = useDeckStats()
+  const archivedDecks = useArchivedDecks()
+  const uninstalledIds = useUninstalledPublicDeckIds()
   const [newName, setNewName] = useState('')
   const [error, setError] = useState('')
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
@@ -41,7 +53,15 @@ export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
     }
   }
 
-  const handleConfirmDelete = async () => {
+  const handleRemoveActive = async (deckId: string) => {
+    if (isPublicDeck(deckId)) {
+      await uninstallPublicDeck(deckId)
+    } else {
+      await archiveDeck(deckId)
+    }
+  }
+
+  const handleConfirmPermanentDelete = async () => {
     if (!pendingDeleteId) return
     const id = pendingDeleteId
     setPendingDeleteId(null)
@@ -52,7 +72,7 @@ export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
     }
 
     const snapshot = await getDeckSnapshot(id)
-    await deleteDeck(id)
+    await permanentlyDeleteDeck(id)
     const timeoutId = setTimeout(() => setUndo(null), 5000)
     setUndo({ ...snapshot, timeoutId })
   }
@@ -64,13 +84,22 @@ export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
     setUndo(null)
   }
 
+  const handleInstall = async (catalogId: string, catalogName: string) => {
+    await installPublicDeck(catalogId, catalogName)
+  }
+
+  const activeDeckIds = new Set(deckStats.map((s) => s.deck.id))
+  const availableCatalogEntries = PUBLIC_DECK_CATALOG.filter(
+    (entry) => !activeDeckIds.has(entry.id),
+  )
+
   const pendingDeck = pendingDeleteId
-    ? deckStats.find((s) => s.deck.id === pendingDeleteId)
+    ? archivedDecks.find((d) => d.id === pendingDeleteId)
     : undefined
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <h2 style={{ margin: 0 }}>Decks</h2>
+      <h2 style={{ margin: 0 }}>My Decks</h2>
 
       <form onSubmit={handleAdd} style={{ display: 'flex', gap: '8px' }}>
         <input
@@ -85,7 +114,7 @@ export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
       {error && <p style={{ color: 'red', margin: 0 }} role="alert">{error}</p>}
 
       {deckStats.length === 0 ? (
-        <p style={{ color: '#888' }}>No decks yet. Create one above.</p>
+        <p style={{ color: '#888' }}>No active decks. Create one above or install from the catalog below.</p>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {deckStats.map(({ deck, dueCount, totalCount }) => (
@@ -133,22 +162,108 @@ export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
                 Review
               </button>
               <button
-                onClick={() => setPendingDeleteId(deck.id)}
-                aria-label={`Delete deck ${deck.name}`}
+                onClick={() => handleRemoveActive(deck.id)}
+                aria-label={isPublicDeck(deck.id) ? `Remove deck ${deck.name}` : `Archive deck ${deck.name}`}
+                title={isPublicDeck(deck.id) ? 'Remove from My Decks (review history preserved)' : 'Archive deck'}
                 style={{ background: 'none', border: '1px solid #555', borderRadius: '4px', padding: '6px 10px', cursor: 'pointer', color: '#ccc' }}
               >
-                ✕
+                {isPublicDeck(deck.id) ? '✕' : '📦'}
               </button>
             </li>
           ))}
         </ul>
       )}
 
+      {/* ── Public Decks Catalog ─────────────────────────────────────────────── */}
+      {availableCatalogEntries.length > 0 && (
+        <>
+          <h2 style={{ margin: '16px 0 0' }}>Public Decks</h2>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {availableCatalogEntries.map((entry) => {
+              const wasUninstalled = uninstalledIds.has(entry.id)
+              return (
+                <li
+                  key={entry.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    background: '#1e1e2e',
+                    borderRadius: '8px',
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <strong>{entry.name}</strong>
+                    <div style={{ color: '#aaa', fontSize: '0.85rem', marginTop: '2px' }}>
+                      {entry.description}
+                    </div>
+                    <div style={{ color: '#888', fontSize: '0.8rem', marginTop: '2px' }}>
+                      {entry.cardCount} cards
+                      {wasUninstalled && (
+                        <span style={{ color: '#e67e22', marginLeft: '8px' }}>· review history preserved</span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleInstall(entry.id, entry.name)}
+                    style={{ padding: '6px 14px', background: '#27ae60', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}
+                  >
+                    {wasUninstalled ? 'Reinstall' : 'Install'}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      )}
+
+      {/* ── Archived Decks ───────────────────────────────────────────────────── */}
+      {archivedDecks.length > 0 && (
+        <>
+          <h2 style={{ margin: '16px 0 0' }}>Archived Decks</h2>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {archivedDecks.map((deck) => (
+              <li
+                key={deck.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px',
+                  background: '#1e1e2e',
+                  borderRadius: '8px',
+                  opacity: 0.7,
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <strong>{deck.name}</strong>
+                </div>
+                <button
+                  onClick={() => unarchiveDeck(deck.id)}
+                  style={{ padding: '6px 14px', background: '#2980b9', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}
+                >
+                  Unarchive
+                </button>
+                <button
+                  onClick={() => setPendingDeleteId(deck.id)}
+                  aria-label={`Delete deck ${deck.name}`}
+                  style={{ padding: '6px 14px', background: '#c0392b', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}
+                >
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {/* ── Confirm permanent delete dialog ──────────────────────────────────── */}
       {pendingDeck && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={`Confirm deleting ${pendingDeck.deck.name}`}
+          aria-label={`Confirm deleting ${pendingDeck.name}`}
           style={{
             position: 'fixed',
             inset: 0,
@@ -160,16 +275,16 @@ export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
           }}
         >
           <div style={{ background: '#1e1e2e', borderRadius: '12px', padding: '24px', maxWidth: '360px', width: '90%' }}>
-            <p style={{ margin: '0 0 8px', fontWeight: 'bold' }}>Delete &ldquo;{pendingDeck.deck.name}&rdquo;?</p>
+            <p style={{ margin: '0 0 8px', fontWeight: 'bold' }}>Permanently delete &ldquo;{pendingDeck.name}&rdquo;?</p>
             <p style={{ margin: '0 0 20px', color: '#888', fontSize: '0.9rem' }}>
-              This will delete {pendingDeck.totalCount} card{pendingDeck.totalCount !== 1 ? 's' : ''} and all review history.
+              This will permanently delete all cards and review history. This cannot be undone.
             </p>
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
               <button onClick={() => setPendingDeleteId(null)} style={{ padding: '8px 16px', cursor: 'pointer' }}>
                 Cancel
               </button>
               <button
-                onClick={handleConfirmDelete}
+                onClick={handleConfirmPermanentDelete}
                 style={{ padding: '8px 16px', cursor: 'pointer', background: '#c0392b', border: 'none', borderRadius: '4px', color: '#fff' }}
               >
                 Delete

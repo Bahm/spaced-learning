@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createDeck, DeckValidationError } from '../../src/domain/decks'
+import { createDeck, DeckValidationError, PUBLIC_DECK_CATALOG } from '../../src/domain/decks'
 
 describe('createDeck', () => {
   it('creates a deck with trimmed name', () => {
@@ -24,5 +24,30 @@ describe('createDeck', () => {
   it('throws DeckValidationError for empty name', () => {
     expect(() => createDeck('')).toThrow(DeckValidationError)
     expect(() => createDeck('   ')).toThrow(DeckValidationError)
+  })
+
+  it('sets status to active', () => {
+    const deck = createDeck('Test')
+    expect(deck.status).toBe('active')
+  })
+})
+
+describe('PUBLIC_DECK_CATALOG', () => {
+  it('contains at least one entry', () => {
+    expect(PUBLIC_DECK_CATALOG.length).toBeGreaterThan(0)
+  })
+
+  it('each entry has required fields', () => {
+    for (const entry of PUBLIC_DECK_CATALOG) {
+      expect(entry.id).toBeTruthy()
+      expect(entry.name).toBeTruthy()
+      expect(entry.description).toBeTruthy()
+      expect(entry.cardCount).toBeGreaterThan(0)
+    }
+  })
+
+  it('has unique IDs', () => {
+    const ids = PUBLIC_DECK_CATALOG.map((e) => e.id)
+    expect(new Set(ids).size).toBe(ids.length)
   })
 })

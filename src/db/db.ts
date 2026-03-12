@@ -36,13 +36,21 @@ db.version(3).stores({
   schedules: 'cardId, due, state, last_review',
   decks: 'id, createdAt',
 }).upgrade(async (tx) => {
-  const defaultDeck: Deck = {
+  await tx.table('decks').add({
     id: crypto.randomUUID(),
     name: 'Default',
     createdAt: Date.now(),
-  }
-  await tx.table('decks').add(defaultDeck)
-  await tx.table('cards').toCollection().modify({ deckId: defaultDeck.id })
+    status: 'active',
+  })
+  await tx.table('cards').toCollection().modify({ deckId: '' })
+})
+
+db.version(4).stores({
+  cards: 'id, createdAt, deckId',
+  schedules: 'cardId, due, state, last_review',
+  decks: 'id, createdAt, status',
+}).upgrade(async (tx) => {
+  await tx.table('decks').toCollection().modify({ status: 'active' })
 })
 
 export { db }

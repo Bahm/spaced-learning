@@ -11,9 +11,18 @@ test.describe('Flashcard app', () => {
       }
     })
     await page.reload()
-    // Wait for seed deck + 1000 cards to be inserted on fresh install
-    await page.waitForTimeout(1000)
+    // Brief wait for Dexie initialization (no seed data to wait for)
+    await page.waitForTimeout(200)
   })
+
+  // Helper: install a public deck from the catalog
+  const installPublicDeck = async (page: import('@playwright/test').Page, deckName: string) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    const catalogRow = page.locator('li').filter({ hasText: deckName }).first()
+    await catalogRow.getByRole('button', { name: /Install/ }).click()
+    // Wait for seed cards to be inserted
+    await page.waitForTimeout(1000)
+  }
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
@@ -21,7 +30,7 @@ test.describe('Flashcard app', () => {
     await expect(page.getByRole('button', { name: 'Review' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Decks' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Cards' })).not.toBeVisible()
-    await expect(page.getByRole('button', { name: 'Add' })).not.toBeVisible()
+    await expect(page.getByRole('button', { name: 'Add', exact: true })).not.toBeVisible()
   })
 
   test('mobile nav shows both tabs at 390px width', async ({ page }) => {
@@ -33,7 +42,7 @@ test.describe('Flashcard app', () => {
   // ── Deck detail: add & view cards ───────────────────────────────────────────
 
   test('opening a deck shows its cards and an add form', async ({ page }) => {
-    await page.getByRole('button', { name: 'Decks' }).click()
+    await installPublicDeck(page, '1000 most common words in Vietnamese')
     const seedRow = page.locator('li').filter({ hasText: '1000 most common words in Vietnamese' }).first()
     await seedRow.getByRole('button', { name: 'Cards' }).click()
 
@@ -55,11 +64,11 @@ test.describe('Flashcard app', () => {
     await page.getByRole('button', { name: 'Add Card' }).click()
 
     await expect(page.getByText('What is the capital of France?')).toBeVisible()
-    await expect(page.getByText('Paris')).toBeVisible()
+    await expect(page.getByText('→ Paris')).toBeVisible()
   })
 
   test('add card form shows success feedback after adding', async ({ page }) => {
-    await page.getByRole('button', { name: 'Decks' }).click()
+    await installPublicDeck(page, '1000 most common words in Vietnamese')
     const seedRow = page.locator('li').filter({ hasText: '1000 most common words in Vietnamese' }).first()
     await seedRow.getByRole('button', { name: 'Cards' }).click()
     await page.getByLabel('Front').fill('Test front')
@@ -69,7 +78,7 @@ test.describe('Flashcard app', () => {
   })
 
   test('add card form shows error for empty fields', async ({ page }) => {
-    await page.getByRole('button', { name: 'Decks' }).click()
+    await installPublicDeck(page, '1000 most common words in Vietnamese')
     const seedRow = page.locator('li').filter({ hasText: '1000 most common words in Vietnamese' }).first()
     await seedRow.getByRole('button', { name: 'Cards' }).click()
     await page.getByRole('button', { name: 'Add Card' }).click()
@@ -141,19 +150,28 @@ test.describe('Flashcard app', () => {
     await expect(reviewBtn).toHaveAttribute('title', /cards/i)
   })
 
-  test('delete a deck requires confirmation and cancel keeps it', async ({ page }) => {
+  test('archive a user deck and unarchive it', async ({ page }) => {
     await page.getByRole('button', { name: 'Decks' }).click()
     await page.getByLabel('Deck name').fill('History')
     await page.getByRole('button', { name: 'Add Deck' }).click()
 
-    await page.locator('li').filter({ hasText: 'History' }).getByRole('button', { name: /delete deck history/i }).click()
-    await expect(page.getByRole('dialog')).toBeVisible()
+    // Archive it
+    await page.locator('li').filter({ hasText: 'History' }).getByRole('button', { name: /archive deck history/i }).click()
 
-    await page.getByRole('button', { name: 'Cancel' }).click()
-    await expect(page.getByText('History')).toBeVisible()
+    // Should appear in Archived section
+    await expect(page.getByRole('heading', { name: 'Archived Decks' })).toBeVisible()
+    const archivedRow = page.locator('li').filter({ hasText: 'History' })
+    await expect(archivedRow).toBeVisible()
+
+    // Unarchive
+    await archivedRow.getByRole('button', { name: 'Unarchive' }).click()
+
+    // Should be back in My Decks
+    await expect(page.getByRole('heading', { name: 'Archived Decks' })).not.toBeVisible()
+    await expect(page.locator('li').filter({ hasText: 'History' })).toBeVisible()
   })
 
-  test('delete a deck then undo restores it with its cards', async ({ page }) => {
+  test('permanently delete an archived deck with confirmation and undo', async ({ page }) => {
     await page.getByRole('button', { name: 'Decks' }).click()
     await page.getByLabel('Deck name').fill('Geography')
     await page.getByRole('button', { name: 'Add Deck' }).click()
@@ -163,19 +181,72 @@ test.describe('Flashcard app', () => {
     await page.getByLabel('Back').fill('Russia')
     await page.getByRole('button', { name: 'Add Card' }).click()
 
+    // Archive it
     await page.getByRole('button', { name: '← Decks' }).click()
-    await page.locator('li').filter({ hasText: 'Geography' }).getByRole('button', { name: /delete deck geography/i }).click()
-    await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click()
-    await expect(page.getByText('Geography')).not.toBeVisible()
+    await page.locator('li').filter({ hasText: 'Geography' }).getByRole('button', { name: /archive deck geography/i }).click()
 
+    // Permanently delete from archived section
+    const archivedRow = page.locator('li').filter({ hasText: 'Geography' })
+    await archivedRow.getByRole('button', { name: /delete deck geography/i }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+
+    // Cancel keeps it
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await expect(page.locator('li').filter({ hasText: 'Geography' })).toBeVisible()
+
+    // Now actually delete
+    await archivedRow.getByRole('button', { name: /delete deck geography/i }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click()
+    await expect(page.locator('li').filter({ hasText: 'Geography' })).not.toBeVisible()
+
+    // Undo restores it
     await page.getByRole('button', { name: 'Undo' }).click()
-    await expect(page.getByText('Geography')).toBeVisible()
+    await expect(page.locator('li').filter({ hasText: 'Geography' })).toBeVisible()
+  })
+
+  // ── Public Decks ──────────────────────────────────────────────────────────
+
+  test('fresh install shows public decks catalog', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await expect(page.getByRole('heading', { name: 'Public Decks' })).toBeVisible()
+    await expect(page.locator('li').filter({ hasText: '1000 most common words in Vietnamese' })).toBeVisible()
+    await expect(page.locator('li').filter({ hasText: 'Vietnamese yoga vocabulary' })).toBeVisible()
+  })
+
+  test('install a public deck from catalog', async ({ page }) => {
+    await installPublicDeck(page, '1000 most common words in Vietnamese')
+
+    // Should now appear in My Decks
+    const myDeckRow = page.locator('li').filter({ hasText: '1000 most common words in Vietnamese' }).first()
+    await expect(myDeckRow.getByRole('button', { name: 'Cards' })).toBeVisible()
+    await expect(myDeckRow.getByRole('button', { name: 'Review' })).not.toBeDisabled()
+  })
+
+  test('remove a public deck and reinstall it', async ({ page }) => {
+    await installPublicDeck(page, 'Vietnamese yoga vocabulary')
+
+    // Remove (uninstall) the deck
+    const myDeckRow = page.locator('li').filter({ hasText: 'Vietnamese yoga vocabulary' }).first()
+    await myDeckRow.getByRole('button', { name: /remove deck/i }).click()
+
+    // Should reappear in Public Decks with "Reinstall" label
+    const catalogRow = page.locator('li').filter({ hasText: 'Vietnamese yoga vocabulary' }).first()
+    await expect(catalogRow.getByRole('button', { name: 'Reinstall' })).toBeVisible()
+    await expect(catalogRow.getByText('review history preserved')).toBeVisible()
+
+    // Reinstall
+    await catalogRow.getByRole('button', { name: 'Reinstall' }).click()
+    await page.waitForTimeout(200)
+
+    // Should be back in My Decks
+    const reinstalledRow = page.locator('li').filter({ hasText: 'Vietnamese yoga vocabulary' }).first()
+    await expect(reinstalledRow.getByRole('button', { name: 'Cards' })).toBeVisible()
   })
 
   // ── Review ───────────────────────────────────────────────────────────────────
 
   test('Review button is enabled for deck with unscheduled cards', async ({ page }) => {
-    await page.getByRole('button', { name: 'Decks' }).click()
+    await installPublicDeck(page, '1000 most common words in Vietnamese')
     const seedDeckRow = page.locator('li').filter({ hasText: '1000 most common words in Vietnamese' }).first()
     await expect(seedDeckRow).toBeVisible()
     await expect(seedDeckRow.getByRole('button', { name: 'Review' })).not.toBeDisabled()
@@ -217,10 +288,11 @@ test.describe('Flashcard app', () => {
     await expect(page.getByText('All done!')).toBeVisible()
   })
 
-  test('global Review tab reviews all due cards', async ({ page }) => {
-    // Global review tab should still work (not deck-scoped)
-    await page.getByRole('button', { name: 'Review' }).click()
-    // Seed deck has 1000 unscheduled (due) cards
+  test('global Review tab reviews all due cards from installed decks', async ({ page }) => {
+    await installPublicDeck(page, '1000 most common words in Vietnamese')
+    // Use nav scope to click the Review tab (not the deck row's Review button)
+    await page.getByRole('navigation').getByRole('button', { name: 'Review' }).click()
+    // Installed deck has 1000 unscheduled (due) cards
     await expect(page.getByText(/cards remaining/)).toBeVisible()
   })
 

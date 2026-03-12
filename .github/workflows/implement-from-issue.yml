@@ -14,6 +14,7 @@ on:
 permissions:
   issues: write
   contents: read
+  pull-requests: read
 
 jobs:
   implement:
@@ -53,9 +54,23 @@ jobs:
           export NVM_DIR="${HOME}/.nvm"
           source "${NVM_DIR}/nvm.sh"
           claude --dangerously-skip-permissions -p \
-            "implement issue #${{ github.event.issue.number }}"
+            "/implement-issue #${{ github.event.issue.number }}. You MUST complete the full workflow: write failing tests, implement, verify, commit, and open a PR. Do not stop at planning."
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Verify PR was created
+        run: |
+          export NVM_DIR="${HOME}/.nvm"
+          source "${NVM_DIR}/nvm.sh"
+          # Look for any open PR whose body references this issue
+          PR_COUNT=$(gh pr list --state open --search "Closes #${{ github.event.issue.number }}" --json number --jq 'length')
+          if [ "$PR_COUNT" -eq 0 ]; then
+            echo "::error::Claude completed (exit 0) but no PR was created for issue #${{ github.event.issue.number }}"
+            exit 1
+          fi
+          echo "✅ PR found for issue #${{ github.event.issue.number }}"
+        env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Comment on issue (failure)

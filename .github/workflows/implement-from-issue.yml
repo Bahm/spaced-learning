@@ -60,11 +60,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Verify PR was created
+        working-directory: /home/bahm/Projects/spaced-learning
         run: |
           export NVM_DIR="${HOME}/.nvm"
           source "${NVM_DIR}/nvm.sh"
           # Look for any open PR whose body references this issue
-          PR_COUNT=$(gh pr list --state open --search "Closes #${{ github.event.issue.number }}" --json number --jq 'length')
+          PR_COUNT=$(gh pr list --repo "${{ github.repository }}" --state open --search "Closes #${{ github.event.issue.number }}" --json number --jq 'length')
           if [ "$PR_COUNT" -eq 0 ]; then
             echo "::error::Claude completed (exit 0) but no PR was created for issue #${{ github.event.issue.number }}"
             exit 1

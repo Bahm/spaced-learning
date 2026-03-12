@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Before ANY `git commit` or `git push`, run: `gh pr list --state all --head $(git branch --show-current)`. If MERGED, **stop** — checkout main, pull, create a new branch. Pushing to a merged branch strands commits silently.
 
+## Git safety — `GH_TOKEN` override
+
+When running on the self-hosted runner, `GH_TOKEN` is set to a restricted `github-actions[bot]` token that can't create PRs. Use `unset GH_TOKEN` before `gh pr create` to fall back to the user's personal `gh auth` credentials. Also use `gh issue view N --json title,body,labels` instead of bare `gh issue view N` to avoid the Projects Classic deprecation GraphQL error.
+
 ## Automation layer
 
 This project is configured for (mostly) hands-off AI development. Key automation:

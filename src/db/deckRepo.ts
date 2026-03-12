@@ -1,6 +1,7 @@
 import { db, type ScheduleRecord } from './db'
 import type { Card, Deck } from '../domain/types'
 import { createCard } from '../domain/cards'
+import type { SeedCard } from './seedData'
 import { VIETNAMESE_SEED_CARDS } from './seedData'
 import { YOGA_SEED_CARDS } from './yogaSeedData'
 
@@ -9,7 +10,59 @@ export const addDeck = (deck: Deck): Promise<string> => db.decks.add(deck)
 export const getAllDecks = (): Promise<Deck[]> =>
   db.decks.orderBy('createdAt').toArray()
 
-export const deleteDeck = async (id: string): Promise<void> => {
+export const DEFAULT_DECK_ID = 'default-vietnamese-deck'
+export const YOGA_DECK_ID = 'default-yoga-deck'
+
+/** Map of public deck IDs to their seed card data. */
+const SEED_CARD_MAP: Record<string, SeedCard[]> = {
+  [DEFAULT_DECK_ID]: VIETNAMESE_SEED_CARDS,
+  [YOGA_DECK_ID]: YOGA_SEED_CARDS,
+}
+
+/** Checks whether a given deck ID is a public (catalog) deck. */
+export const isPublicDeck = (deckId: string): boolean => deckId in SEED_CARD_MAP
+
+// ── Lifecycle actions ──────────────────────────────────────────────────────────
+
+export const archiveDeck = (id: string): Promise<number> =>
+  db.decks.update(id, { status: 'archived' })
+
+export const unarchiveDeck = (id: string): Promise<number> =>
+  db.decks.update(id, { status: 'active' })
+
+export const uninstallPublicDeck = (id: string): Promise<number> =>
+  db.decks.update(id, { status: 'uninstalled' })
+
+/** Installs (or reinstalls) a public deck from the catalog. */
+export const installPublicDeck = async (catalogId: string, catalogName: string): Promise<void> => {
+  const seedCards = SEED_CARD_MAP[catalogId]
+  if (!seedCards) throw new Error(`Unknown public deck: ${catalogId}`)
+
+  await db.transaction('rw', db.decks, db.cards, async () => {
+    const existing = await db.decks.get(catalogId)
+    if (existing) {
+      // Reinstall — just flip status back to active (cards+schedules preserved)
+      await db.decks.update(catalogId, { status: 'active' })
+    } else {
+      // Fresh install
+      const deck: Deck = {
+        id: catalogId,
+        name: catalogName,
+        createdAt: Date.now(),
+        status: 'active',
+      }
+      await db.decks.put(deck)
+      const cards = seedCards.map(({ front, back }) =>
+        createCard(front, back, deck.id),
+      )
+      await db.cards.bulkAdd(cards)
+    }
+  })
+}
+
+// ── Permanent delete (cascade) ──────────────────────────────────────────────────
+
+export const permanentlyDeleteDeck = async (id: string): Promise<void> => {
   await db.transaction('rw', db.decks, db.cards, db.schedules, async () => {
     const cards = await db.cards.where('deckId').equals(id).toArray()
     const cardIds = cards.map((c) => c.id)
@@ -18,6 +71,11 @@ export const deleteDeck = async (id: string): Promise<void> => {
     await db.decks.delete(id)
   })
 }
+
+// Keep the old name as an alias for backward compatibility
+export const deleteDeck = permanentlyDeleteDeck
+
+// ── Snapshot / Restore (for undo) ────────────────────────────────────────────────
 
 /** Captures deck + all its cards + their schedules before deletion, for undo. */
 export const getDeckSnapshot = async (id: string): Promise<{ deck: Deck; cards: Card[]; schedules: ScheduleRecord[] }> => {
@@ -35,45 +93,5 @@ export const restoreDeck = async (deck: Deck, cards: Card[], schedules: Schedule
     await db.decks.put(deck)
     await db.cards.bulkPut(cards)
     if (schedules.length > 0) await db.schedules.bulkPut(schedules)
-  })
-}
-
-export const DEFAULT_DECK_ID = 'default-vietnamese-deck'
-export const YOGA_DECK_ID = 'default-yoga-deck'
-
-// Seeds the Vietnamese vocabulary deck on fresh installs — called on app startup.
-// Uses a fixed ID so concurrent calls (e.g. React StrictMode double-invoke) are idempotent.
-export const ensureDefaultDeck = async (): Promise<void> => {
-  await db.transaction('rw', db.decks, db.cards, async () => {
-    const existing = await db.decks.get(DEFAULT_DECK_ID)
-    if (existing) return
-    const deck: Deck = {
-      id: DEFAULT_DECK_ID,
-      name: '1000 most common words in Vietnamese',
-      createdAt: Date.now(),
-    }
-    await db.decks.put(deck)
-    const cards = VIETNAMESE_SEED_CARDS.map(({ front, back }) =>
-      createCard(front, back, deck.id),
-    )
-    await db.cards.bulkAdd(cards)
-  })
-}
-
-// Seeds the yoga vocabulary deck on fresh installs — called on app startup.
-export const ensureYogaDeck = async (): Promise<void> => {
-  await db.transaction('rw', db.decks, db.cards, async () => {
-    const existing = await db.decks.get(YOGA_DECK_ID)
-    if (existing) return
-    const deck: Deck = {
-      id: YOGA_DECK_ID,
-      name: 'Vietnamese yoga vocabulary',
-      createdAt: Date.now(),
-    }
-    await db.decks.put(deck)
-    const cards = YOGA_SEED_CARDS.map(({ front, back }) =>
-      createCard(front, back, deck.id),
-    )
-    await db.cards.bulkAdd(cards)
   })
 }

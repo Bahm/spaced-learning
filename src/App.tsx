@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ReviewSession } from './components/ReviewSession'
 import { DeckList } from './components/DeckList'
 import { DeckDetail } from './components/DeckDetail'
-import { ensureDefaultDeck, ensureYogaDeck } from './db/deckRepo'
 
 type Tab = 'review' | 'decks'
 
@@ -18,11 +17,6 @@ const TABS: { id: Tab; label: string }[] = [
 
 export default function App() {
   const [view, setView] = useState<View>({ type: 'tab', tab: 'review' })
-
-  useEffect(() => {
-    void ensureDefaultDeck()
-    void ensureYogaDeck()
-  }, [])
 
   const activeTab = view.type === 'tab' ? view.tab : null
   const isSubView = view.type === 'deck-review' || view.type === 'deck-detail'

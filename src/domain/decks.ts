@@ -1,4 +1,6 @@
-import type { Deck } from './types'
+import type { Deck, PublicDeckDefinition } from './types'
+import { VIETNAMESE_SEED_CARDS } from '../db/seedData'
+import { YOGA_SEED_CARDS } from '../db/yogaSeedData'
 
 export class DeckValidationError extends Error {
   constructor(message: string) {
@@ -15,5 +17,21 @@ export const createDeck = (name: string): Deck => {
     id: crypto.randomUUID(),
     name: name.trim(),
     createdAt: Date.now(),
+    status: 'active',
   }
 }
+
+export const PUBLIC_DECK_CATALOG: PublicDeckDefinition[] = [
+  {
+    id: 'default-vietnamese-deck',
+    name: '1000 most common words in Vietnamese',
+    description: 'Learn the most frequently used Vietnamese words with English translations.',
+    cardCount: VIETNAMESE_SEED_CARDS.length,
+  },
+  {
+    id: 'default-yoga-deck',
+    name: 'Vietnamese yoga vocabulary',
+    description: 'Phrases an instructor or student might say in a yoga class, in Vietnamese.',
+    cardCount: YOGA_SEED_CARDS.length,
+  },
+]

@@ -73,15 +73,17 @@ The core principle is **separation of pure logic from side effects**:
 
 ## DB schema
 
-Three Dexie tables (current schema version: 3):
+Three Dexie tables (current schema version: 4):
 
 ```
-decks:     id (PK), createdAt
+decks:     id (PK), createdAt, status
 cards:     id (PK), createdAt, deckId
 schedules: cardId (PK), due, state, last_review
 ```
 
-`Card.deckId` is required. `ensureDefaultDeck()` and `ensureYogaDeck()` in `deckRepo.ts` are called on app startup (`App.tsx` `useEffect`) to seed default decks for fresh installs. The v3 Dexie upgrade migration also creates a "Default" deck and backfills `deckId` on all pre-existing cards. To add a new seed deck: create `src/db/<name>SeedData.ts` exporting `SeedCard[]`, add an `ensure<Name>Deck()` function with a fixed ID + transaction guard in `deckRepo.ts`, and call it from `App.tsx` useEffect — no Dexie schema version bump needed.
+`Card.deckId` is required. `Deck.status` is `'active' | 'archived' | 'uninstalled'` — active decks appear in My Decks, archived are soft-deleted user decks, uninstalled are public decks removed from My Decks (cards+schedules preserved in DB). The v3 Dexie migration creates a "Default" deck and backfills `deckId` on pre-existing cards. The v4 migration adds the `status` index and sets all existing decks to `'active'`.
+
+**No auto-seeding on startup.** Fresh installs start with empty My Decks and a Public Decks catalog. Public decks are defined in `PUBLIC_DECK_CATALOG` (`src/domain/decks.ts`). Users install them on demand via `installPublicDeck()` in `deckRepo.ts`. To add a new public deck: create `src/db/<name>SeedData.ts` exporting `SeedCard[]`, add an entry to `PUBLIC_DECK_CATALOG` and `SEED_CARD_MAP` in `deckRepo.ts`.
 
 `ScheduleRecord` fields are **snake_case** to match ts-fsrs's own `FSRSCard` type (`elapsed_days`, `scheduled_days`, `learning_steps`, `last_review`). Never use camelCase for these. When adding a new Dexie index, use the exact snake_case field name.
 
@@ -105,11 +107,11 @@ Rating enum: `Again=1, Hard=2, Good=3, Easy=4` (Manual=0 unused).
 - Domain functions return new objects — never mutate.
 - `useLiveQuery` returns `undefined` on first render; always provide a default (`?? []` or `?? 0`).
 - `upsertSchedule` uses `db.schedules.put()` — idempotent.
-- Deleting a card also deletes its schedule in a single Dexie transaction. Deleting a deck deletes all its cards and schedules too (schedules → cards → deck, inside one `db.transaction('rw', ...)`).
+- Deleting a card also deletes its schedule in a single Dexie transaction. Permanently deleting a deck (`permanentlyDeleteDeck`) cascade-deletes all its cards and schedules (schedules → cards → deck, inside one `db.transaction('rw', ...)`). For active decks, prefer `archiveDeck` (user decks) or `uninstallPublicDeck` (public decks) over permanent deletion.
 - `useReview(deckId?)` accepts an optional `deckId` — when provided it calls `getDueCardsByDeck`, otherwise `getDueCards`.
 - `noUncheckedIndexedAccess` is enabled — array/index access returns `T | undefined`; always null-check.
 - Cards with no schedule entry are treated as immediately due. `getDueCards`/`getDueCardsByDeck` use `bulkGet` on all card IDs and include any card whose schedule is missing or whose `due` timestamp is ≤ now.
-- React StrictMode (active in dev) runs effects twice. Any `useEffect` with side effects must be truly idempotent — guard with a check-then-write inside a single Dexie transaction, not a count check before it. See `ensureDefaultDeck()` for the canonical pattern.
+- React StrictMode (active in dev) runs effects twice. Any `useEffect` with side effects must be truly idempotent — guard with a check-then-write inside a single Dexie transaction, not a count check before it. See `installPublicDeck()` for the canonical pattern.
 - When a `useEffect` event listener needs live state but should only register once, store the live values in refs and read them inside the stable handler. See `ReviewSession.tsx` keyboard shortcut handler for the canonical pattern.
 - Use `title={condition ? 'Explanation text' : undefined}` on `<button disabled>` elements to explain why they are disabled. Omitting the `title` when condition is false avoids a blank `title=""` attribute.
 
@@ -117,7 +119,7 @@ Rating enum: `Again=1, Hard=2, Good=3, Easy=4` (Manual=0 unused).
 
 Unit tests cover `src/domain/` only (pure functions). E2E tests cover full user flows in Chromium.
 
-E2E tests clear IndexedDB before each test via `indexedDB.databases()` + `deleteDatabase`, then `page.reload()`. After reload, always `waitForTimeout(1000)` before asserting — `ensureDefaultDeck()` runs asynchronously on mount and the 1000-card seed `bulkAdd` takes longer than a simple insert. The Playwright `webServer` config auto-starts the dev server if not already running.
+E2E tests clear IndexedDB before each test via `indexedDB.databases()` + `deleteDatabase`, then `page.reload()`. Fresh installs have no seed data, so only a brief `waitForTimeout(200)` is needed for Dexie init. Tests that need a public deck must call `installPublicDeck(page, deckName)` (helper in the test file), which clicks Install and waits 1000ms for seed cards. The Playwright `webServer` config auto-starts the dev server if not already running.
 
 The runtime IndexedDB database name is `'SpacedLearning'` (set in the Dexie constructor in `db.ts`). Use this when manually clearing storage: `indexedDB.deleteDatabase('SpacedLearning')`.
 

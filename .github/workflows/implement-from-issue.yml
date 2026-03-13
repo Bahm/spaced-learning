@@ -17,7 +17,7 @@ on:
 permissions:
   issues: write
   contents: read
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   implement:
@@ -50,6 +50,20 @@ jobs:
               repo: context.repo.repo,
               body: '🤖 **Claude Code** is starting work on this issue. A PR will be created when done.\n\nIf the token quota is reached, the runner will automatically wait for quota reset and resume.'
             })
+
+      - name: Close existing open PRs for this issue
+        working-directory: /home/bahm/Projects/spaced-learning
+        run: |
+          export NVM_DIR="${HOME}/.nvm"
+          source "${NVM_DIR}/nvm.sh"
+          # Find any existing open PRs that reference this issue
+          EXISTING_PRS=$(gh pr list --repo "${{ github.repository }}" --state open --search "Closes #${{ github.event.issue.number }}" --json number --jq '.[].number')
+          for PR_NUM in $EXISTING_PRS; do
+            echo "Closing superseded PR #$PR_NUM"
+            gh pr close "$PR_NUM" --repo "${{ github.repository }}" --comment "Superseded — re-running implementation for issue #${{ github.event.issue.number }} (scope was updated)."
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Run implement-issue via quota-retry-wrapper
         working-directory: /home/bahm/Projects/spaced-learning

@@ -112,6 +112,16 @@ gh pr list --state all --head $(git branch --show-current)
 ```
 If status is MERGED, the branch is stale — create a new branch from main and start a new PR.
 
+**Close existing open PRs for the same issue** — when triggered from a GitHub Issue, check for any existing open PRs that reference `Closes #<N>`. If found, close them with a comment explaining they are superseded, before creating the new PR:
+```bash
+# Find and close existing open PRs for this issue
+EXISTING_PRS=$(gh pr list --state open --search "Closes #<issue-number>" --json number --jq '.[].number')
+for PR_NUM in $EXISTING_PRS; do
+  gh pr close "$PR_NUM" --comment "Superseded by a new PR for issue #<issue-number> (scope was updated)."
+done
+```
+This prevents duplicate PRs when an issue's scope is updated and the workflow re-runs.
+
 When triggered from a GitHub Issue (i.e. an issue number was given in step 1), include `Closes #<N>` in the PR body so GitHub auto-closes the issue on merge.
 
 ```bash

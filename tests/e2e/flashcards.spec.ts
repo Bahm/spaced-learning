@@ -315,6 +315,42 @@ test.describe('Flashcard app', () => {
     await expect(page.getByText('Done')).toBeVisible()
   })
 
+  test('reviewed today count shows unique cards reviewed', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Counter')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+
+    await page.locator('li').filter({ hasText: 'Counter' }).getByRole('button', { name: 'Cards' }).click()
+    const heading = page.getByRole('heading', { name: /Cards/ })
+
+    await page.getByLabel('Front').fill('Card A')
+    await page.getByLabel('Back').fill('Answer A')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+    await expect(heading).toContainText('1')
+
+    await page.getByLabel('Front').fill('Card B')
+    await page.getByLabel('Back').fill('Answer B')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+    await expect(heading).toContainText('2')
+
+    // Review both cards
+    await page.getByRole('button', { name: '← Decks' }).click()
+    await page.locator('li').filter({ hasText: 'Counter' }).getByRole('button', { name: 'Review', exact: true }).click()
+
+    // Review first card
+    await page.getByRole('button', { name: 'Show Answer' }).click()
+    await page.getByRole('button', { name: 'Good' }).click()
+
+    // Review second card (wait for it to appear)
+    await expect(page.getByRole('button', { name: 'Show Answer' })).toBeVisible({ timeout: 10000 })
+    await page.getByRole('button', { name: 'Show Answer' }).click()
+    await page.getByRole('button', { name: 'Good' }).click()
+
+    // All done screen should show reviewed today: 2 (unique cards)
+    await expect(page.getByText('All done!')).toBeVisible()
+    await expect(page.getByText('Reviewed today: 2')).toBeVisible()
+  })
+
   test('keyboard shortcuts 1-4 rate cards', async ({ page }) => {
     await page.getByRole('button', { name: 'Decks' }).click()
     await page.getByLabel('Deck name').fill('KB Rate')

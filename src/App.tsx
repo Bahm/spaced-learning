@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ReviewSession } from './components/ReviewSession'
 import { DeckList } from './components/DeckList'
 import { DeckDetail } from './components/DeckDetail'
@@ -16,7 +16,33 @@ const TABS: { id: Tab; label: string }[] = [
 ]
 
 export default function App() {
-  const [view, setView] = useState<View>({ type: 'tab', tab: 'review' })
+  const [view, setViewState] = useState<View>({ type: 'tab', tab: 'review' })
+
+  const navigate = useCallback((newView: View) => {
+    const isSubView = newView.type === 'deck-review' || newView.type === 'deck-detail'
+    if (isSubView) {
+      history.pushState(newView, '')
+    } else {
+      history.replaceState(newView, '')
+    }
+    setViewState(newView)
+  }, [])
+
+  useEffect(() => {
+    // Set initial state so popstate has something to land on
+    history.replaceState(view, '')
+
+    const onPopState = (e: PopStateEvent) => {
+      if (e.state && typeof e.state === 'object' && 'type' in e.state) {
+        setViewState(e.state as View)
+      } else {
+        setViewState({ type: 'tab', tab: 'review' })
+      }
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const activeTab = view.type === 'tab' ? view.tab : null
   const isSubView = view.type === 'deck-review' || view.type === 'deck-detail'
@@ -27,7 +53,7 @@ export default function App() {
       <header style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         {isSubView && (
           <button
-            onClick={() => setView({ type: 'tab', tab: 'decks' })}
+            onClick={() => history.back()}
             aria-label="← Decks"
             style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '1.2rem', padding: 0 }}
           >
@@ -44,7 +70,7 @@ export default function App() {
           {TABS.map(({ id, label }) => (
             <button
               key={id}
-              onClick={() => setView({ type: 'tab', tab: id })}
+              onClick={() => navigate({ type: 'tab', tab: id })}
               aria-pressed={activeTab === id}
               style={{
                 flex: 1,
@@ -69,8 +95,8 @@ export default function App() {
         {view.type === 'tab' && activeTab === 'review' && <ReviewSession />}
         {view.type === 'tab' && activeTab === 'decks' && (
           <DeckList
-            onOpenDeck={(deckId, deckName) => setView({ type: 'deck-detail', deckId, deckName })}
-            onReviewDeck={(deckId, deckName) => setView({ type: 'deck-review', deckId, deckName })}
+            onOpenDeck={(deckId, deckName) => navigate({ type: 'deck-detail', deckId, deckName })}
+            onReviewDeck={(deckId, deckName) => navigate({ type: 'deck-review', deckId, deckName })}
           />
         )}
       </main>

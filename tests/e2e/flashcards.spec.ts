@@ -24,6 +24,43 @@ test.describe('Flashcard app', () => {
     await page.waitForTimeout(1000)
   }
 
+  // ── Browser history / back gesture ─────────────────────────────────────────
+
+  test('browser back from deck detail returns to decks list', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('History Test')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+    await page.locator('li').filter({ hasText: 'History Test' }).getByRole('button', { name: 'Cards' }).click()
+
+    // Should be on deck detail
+    await expect(page.getByLabel('Front')).toBeVisible()
+
+    // Browser back should return to decks list, not leave the app
+    await page.goBack()
+    await expect(page.getByRole('button', { name: 'Decks' })).toBeVisible()
+    await expect(page.getByLabel('Deck name')).toBeVisible()
+  })
+
+  test('browser back from deck review returns to decks list', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Nav Test')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+
+    await page.locator('li').filter({ hasText: 'Nav Test' }).getByRole('button', { name: 'Cards' }).click()
+    await page.getByLabel('Front').fill('Q1')
+    await page.getByLabel('Back').fill('A1')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+
+    await page.getByRole('button', { name: '← Decks' }).click()
+    await page.locator('li').filter({ hasText: 'Nav Test' }).getByRole('button', { name: 'Review' }).click()
+    await expect(page.getByText('Q1')).toBeVisible()
+
+    // Browser back should return to decks list
+    await page.goBack()
+    await expect(page.getByRole('button', { name: 'Decks' })).toBeVisible()
+    await expect(page.getByLabel('Deck name')).toBeVisible()
+  })
+
   // ── Navigation ──────────────────────────────────────────────────────────────
 
   test('only Review and Decks tabs are visible', async ({ page }) => {

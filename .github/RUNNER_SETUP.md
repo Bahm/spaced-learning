@@ -63,6 +63,22 @@ A comment is posted to the issue when Claude starts. If the run fails, a failure
 
 Any repository collaborator with permission to add labels can trigger an automated run. Restrict who can add labels via GitHub's repository role settings if needed. The runner process runs as your local user account, so it has full access to your machine.
 
+## Quota auto-retry
+
+The workflow uses `.claude/scripts/quota-retry-wrapper.sh` to automatically handle token quota exhaustion. When the Claude CLI exits due to a quota limit:
+
+1. The wrapper detects the quota error in the output
+2. Parses the reset time from the error message (ISO 8601, datetime, or natural language)
+3. Posts a status comment on the GitHub issue
+4. Sleeps until the quota resets (+ 60s buffer)
+5. Retries the full command
+
+Configuration via environment variables in the workflow:
+- `MAX_RETRIES` — number of quota retries (default: 2)
+- `DEFAULT_WAIT_SECS` — fallback wait if reset time can't be parsed (default: 3600s = 1 hour)
+
+The workflow timeout is set to 360 minutes (6 hours) to accommodate quota waits. GitHub Actions enforces a hard limit of 6 hours per job.
+
 ## Stopping the runner
 
 ```bash

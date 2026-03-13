@@ -63,6 +63,56 @@ A comment is posted to the issue when Claude starts. If the run fails, a failure
 
 Any repository collaborator with permission to add labels can trigger an automated run. Restrict who can add labels via GitHub's repository role settings if needed. The runner process runs as your local user account, so it has full access to your machine.
 
+## Quota-aware retrospection (cron job)
+
+The project includes a script that runs Claude Code for self-improvement before the weekly token quota resets. When most of the quota would otherwise go unused, this reclaims it for code quality work.
+
+### How it works
+
+1. A cron job runs `.claude/scripts/quota-retrospection.sh` every 15 minutes
+2. The script checks if we're within the configured lead time before quota reset (default: 2 hours)
+3. If the runner is idle (no active GitHub Actions workflow runs), it launches a Claude Code session
+4. The session has a `--max-budget-usd` cap to avoid over-spending
+5. A state file prevents duplicate runs in the same reset cycle
+
+### Setup
+
+Edit the config to match your quota reset schedule:
+
+```bash
+# .claude/scripts/retrospection-config.json
+# quota_reset_cron: cron expression for when your quota resets (default: Friday midnight)
+# retrospection_lead_hours: how many hours before reset to start (default: 2)
+# max_budget_usd: spending cap per retrospection session (default: 5.00)
+```
+
+Install the cron job:
+
+```bash
+# Run every 15 minutes — the script self-gates on the time window
+(crontab -l 2>/dev/null; echo "*/15 * * * * /home/bahm/Projects/spaced-learning/.claude/scripts/quota-retrospection.sh >> /tmp/retrospection.log 2>&1") | crontab -
+```
+
+Verify:
+
+```bash
+crontab -l | grep retrospection
+```
+
+### Manual usage
+
+```bash
+npm run retrospection:dry    # Preview what would happen
+npm run retrospection:force  # Run immediately, skip time/idle checks
+npm run retrospection        # Normal run (respects time window)
+```
+
+### Limitations
+
+- **No direct quota API**: The Claude Code CLI doesn't expose subscription quota usage. The script uses a time-based heuristic (run N hours before reset) rather than checking actual remaining percentage.
+- **Budget cap as proxy**: `--max-budget-usd` caps spending per session but doesn't map 1:1 to subscription tokens.
+- **Requires `gh` auth**: The script uses `gh` to check runner status and create PRs. Ensure `gh auth login` is configured.
+
 ## Stopping the runner
 
 ```bash

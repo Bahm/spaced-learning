@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync, readdirSync, existsSync } from 'fs'
+import { readFileSync, readdirSync, existsSync, accessSync, constants } from 'fs'
 import { join } from 'path'
 
 const RULES_DIR = join(__dirname, '../../.claude/rules')
 const SKILL_PATH = join(__dirname, '../../.claude/skills/implement-issue/SKILL.md')
+const RETRO_SCRIPT = join(__dirname, '../../.claude/scripts/quota-retrospection.sh')
+const RETRO_CONFIG = join(__dirname, '../../.claude/scripts/retrospection-config.json')
 
 describe('.claude/rules/ structure', () => {
   it('rules directory exists', () => {
@@ -52,5 +54,55 @@ describe('implement-issue skill best-practices audit', () => {
     expect(step9Match, 'step 9 must exist').not.toBeNull()
     const step9Content = step9Match![1]!
     expect(step9Content).toMatch(/best.practices audit/i)
+  })
+})
+
+describe('quota-aware retrospection infrastructure', () => {
+  it('config file exists and is valid JSON', () => {
+    expect(existsSync(RETRO_CONFIG)).toBe(true)
+    const config = JSON.parse(readFileSync(RETRO_CONFIG, 'utf-8'))
+    expect(config).toBeDefined()
+  })
+
+  it('config has required fields', () => {
+    const config = JSON.parse(readFileSync(RETRO_CONFIG, 'utf-8'))
+    expect(config).toHaveProperty('quota_reset_cron')
+    expect(config).toHaveProperty('retrospection_lead_hours')
+    expect(config).toHaveProperty('max_budget_usd')
+    expect(config).toHaveProperty('github_repo')
+    expect(config).toHaveProperty('repo_path')
+  })
+
+  it('config values are within reasonable ranges', () => {
+    const config = JSON.parse(readFileSync(RETRO_CONFIG, 'utf-8'))
+    expect(config.retrospection_lead_hours).toBeGreaterThan(0)
+    expect(config.retrospection_lead_hours).toBeLessThanOrEqual(24)
+    expect(config.max_budget_usd).toBeGreaterThan(0)
+    expect(config.max_budget_usd).toBeLessThanOrEqual(50)
+  })
+
+  it('retrospection script exists and is executable', () => {
+    expect(existsSync(RETRO_SCRIPT)).toBe(true)
+    expect(() => accessSync(RETRO_SCRIPT, constants.X_OK)).not.toThrow()
+  })
+
+  it('script sources nvm before running node/claude commands', () => {
+    const script = readFileSync(RETRO_SCRIPT, 'utf-8')
+    expect(script).toContain('nvm.sh')
+  })
+
+  it('script checks runner idle status before launching', () => {
+    const script = readFileSync(RETRO_SCRIPT, 'utf-8')
+    expect(script).toMatch(/gh.*run.*list|workflow.*run/i)
+  })
+
+  it('script uses a state file to prevent duplicate runs per cycle', () => {
+    const script = readFileSync(RETRO_SCRIPT, 'utf-8')
+    expect(script).toMatch(/state|lock|last.run/i)
+  })
+
+  it('script passes --max-budget-usd to claude CLI', () => {
+    const script = readFileSync(RETRO_SCRIPT, 'utf-8')
+    expect(script).toContain('--max-budget-usd')
   })
 })

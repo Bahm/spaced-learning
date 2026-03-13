@@ -13,7 +13,10 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "lint": "eslint src",
-    "memory:sync": "bash .claude/scripts/post-session.sh"
+    "memory:sync": "bash .claude/scripts/post-session.sh",
+    "retrospection": "bash .claude/scripts/quota-retrospection.sh",
+    "retrospection:dry": "bash .claude/scripts/quota-retrospection.sh --dry-run",
+    "retrospection:force": "bash .claude/scripts/quota-retrospection.sh --force"
   },
   "repository": {
     "type": "git",

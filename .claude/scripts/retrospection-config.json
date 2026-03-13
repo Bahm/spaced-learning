@@ -1,0 +1,9 @@
+{
+  "quota_reset_cron": "0 0 * * 5",
+  "retrospection_lead_hours": 2,
+  "max_budget_usd": 5.00,
+  "github_repo": "Bahm/spaced-learning",
+  "repo_path": "/home/bahm/Projects/spaced-learning",
+  "state_file": "/tmp/spaced-learning-retrospection-state.json",
+  "retrospection_prompt": "You are running a scheduled retrospection session on the spaced-learning project. Your weekly token quota is about to reset, so use this time productively.\n\nPriority order:\n1. Run the full test suite and fix any failures\n2. Run `npx tsc --noEmit` and fix any type errors\n3. Review CLAUDE.md and MEMORY.md for stale or contradictory entries\n4. Look for code quality improvements: unused imports, dead code, inconsistent patterns\n5. Check if any dependencies have security advisories (`npm audit`)\n6. Review open GitHub issues for low-hanging fruit\n\nConstraints:\n- Follow TDD: write a failing test before any code change\n- Follow the architecture layering (domain → db → hooks → components)\n- Create a single PR with all improvements, titled 'chore: scheduled retrospection'\n- Keep changes focused and reviewable — prefer 3 solid fixes over 10 superficial ones\n- Do NOT make breaking changes or large refactors\n- Always source nvm: export NVM_DIR=\"${HOME}/.nvm\"; source \"${NVM_DIR}/nvm.sh\""
+}

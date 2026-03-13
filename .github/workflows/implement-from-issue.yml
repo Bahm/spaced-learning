@@ -5,6 +5,9 @@ name: Implement Issue via Claude Code CLI
 # (this machine), which executes the full implement-issue TDD workflow
 # locally and opens a PR that closes the issue.
 #
+# If the token quota is reached, the quota-retry-wrapper automatically
+# waits for the quota reset and retries (up to MAX_RETRIES times).
+#
 # Setup: see .github/RUNNER_SETUP.md
 
 on:
@@ -21,7 +24,7 @@ jobs:
     name: implement-issue #${{ github.event.issue.number }}
     if: github.event.label.name == 'auto-implement'
     runs-on: self-hosted
-    timeout-minutes: 60
+    timeout-minutes: 360
 
     steps:
       - name: Check actor permissions
@@ -45,19 +48,23 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🤖 **Claude Code** is starting work on this issue. A PR will be created when done.'
+              body: '🤖 **Claude Code** is starting work on this issue. A PR will be created when done.\n\nIf the token quota is reached, the runner will automatically wait for quota reset and resume.'
             })
 
-      - name: Run implement-issue via Claude Code CLI
+      - name: Run implement-issue via quota-retry-wrapper
         working-directory: /home/bahm/Projects/spaced-learning
         run: |
           export NVM_DIR="${HOME}/.nvm"
           source "${NVM_DIR}/nvm.sh"
-          claude --dangerously-skip-permissions -p \
+          unset GH_TOKEN
+          .claude/scripts/quota-retry-wrapper.sh \
+            "${{ github.event.issue.number }}" \
+            "${{ github.repository }}" \
+            --dangerously-skip-permissions -p \
             "/implement-issue #${{ github.event.issue.number }}. You MUST complete the full workflow: write failing tests, implement, verify, commit, and open a PR. Do not stop at planning."
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GH_TOKEN: ${{ github.token }}
+          MAX_RETRIES: "2"
 
       - name: Verify PR was created
         working-directory: /home/bahm/Projects/spaced-learning

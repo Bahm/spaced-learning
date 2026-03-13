@@ -15,7 +15,7 @@ interface Props {
 }
 
 export const ReviewSession = ({ deckId }: Props = {}) => {
-  const { currentCard, remaining, isRevealed, reveal, rate } = useReview(deckId)
+  const { currentCard, remaining, isLoading, isRevealed, reveal, rate } = useReview(deckId)
   const reviewedToday = useReviewedToday()
 
   // Use refs so the stable event listener always has the latest values
@@ -47,9 +47,17 @@ export const ReviewSession = ({ deckId }: Props = {}) => {
     return () => window.removeEventListener('keydown', handleKey)
   }, []) // stable: runs once, reads live values through refs
 
+  if (isLoading) {
+    return (
+      <div aria-busy="true" style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
+        <p>Loading…</p>
+      </div>
+    )
+  }
+
   if (!currentCard) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px' }}>
+      <div aria-busy="false" style={{ textAlign: 'center', padding: '40px' }}>
         <h2>All done!</h2>
         <p>No cards due for review. Great work!</p>
         {reviewedToday > 0 && (
@@ -60,7 +68,7 @@ export const ReviewSession = ({ deckId }: Props = {}) => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div aria-busy="false" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', color: '#aaa' }}>
         <span>{remaining} card{remaining !== 1 ? 's' : ''} remaining</span>
         {reviewedToday > 0 && <span>Reviewed today: {reviewedToday}</span>}

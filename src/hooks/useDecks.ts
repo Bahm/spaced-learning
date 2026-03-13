@@ -8,7 +8,7 @@ export interface DeckStats {
   readonly totalCount: number
 }
 
-export const useDeckStats = (): DeckStats[] =>
+export const useDeckStats = (): DeckStats[] | undefined =>
   useLiveQuery(
     async () => {
       const decks = await db.decks.where('status').equals('active').sortBy('createdAt')
@@ -27,15 +27,13 @@ export const useDeckStats = (): DeckStats[] =>
       )
     },
     [],
-    [],
-  ) ?? []
+  )
 
-export const useArchivedDecks = (): Deck[] =>
+export const useArchivedDecks = (): Deck[] | undefined =>
   useLiveQuery(
     () => db.decks.where('status').equals('archived').sortBy('createdAt'),
     [],
-    [],
-  ) ?? []
+  )
 
 export const useUninstalledPublicDeckIds = (): Set<string> => {
   const ids = useLiveQuery(

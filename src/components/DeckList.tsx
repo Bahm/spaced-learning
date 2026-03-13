@@ -28,8 +28,11 @@ interface UndoState {
 }
 
 export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
-  const deckStats = useDeckStats()
-  const archivedDecks = useArchivedDecks()
+  const deckStatsRaw = useDeckStats()
+  const archivedDecksRaw = useArchivedDecks()
+  const isLoading = deckStatsRaw === undefined || archivedDecksRaw === undefined
+  const deckStats = deckStatsRaw ?? []
+  const archivedDecks = archivedDecksRaw ?? []
   const uninstalledIds = useUninstalledPublicDeckIds()
   const [newName, setNewName] = useState('')
   const [error, setError] = useState('')
@@ -97,8 +100,17 @@ export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
     ? archivedDecks.find((d) => d.id === pendingDeleteId)
     : undefined
 
+  if (isLoading) {
+    return (
+      <div aria-busy="true" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <h2 style={{ margin: 0 }}>My Decks</h2>
+        <p style={{ color: '#888' }}>Loading…</p>
+      </div>
+    )
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div aria-busy="false" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <h2 style={{ margin: 0 }}>My Decks</h2>
 
       <form onSubmit={handleAdd} style={{ display: 'flex', gap: '8px' }}>

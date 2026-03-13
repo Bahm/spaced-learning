@@ -41,6 +41,33 @@ test.describe('Flashcard app', () => {
     await expect(page.getByLabel('Deck name')).toBeVisible()
   })
 
+  test('back gesture at root view does not leave the app', async ({ page }) => {
+    // On the root view (Review tab), simulate a back gesture
+    await expect(page.getByRole('heading', { name: 'Spaced Learning' })).toBeVisible()
+
+    await page.goBack()
+    await page.waitForTimeout(200)
+
+    // App should still be visible — not a blank screen
+    await expect(page.getByRole('heading', { name: 'Spaced Learning' })).toBeVisible()
+  })
+
+  test('multiple back gestures after sub-view do not leave the app', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Back Test')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+    await page.locator('li').filter({ hasText: 'Back Test' }).getByRole('button', { name: 'Cards' }).click()
+
+    // First back — returns to deck list
+    await page.goBack()
+    await expect(page.getByRole('button', { name: 'Decks' })).toBeVisible()
+
+    // Second back at root — should stay in app, not blank screen
+    await page.goBack()
+    await page.waitForTimeout(200)
+    await expect(page.getByRole('heading', { name: 'Spaced Learning' })).toBeVisible()
+  })
+
   test('browser back from deck review returns to decks list', async ({ page }) => {
     await page.getByRole('button', { name: 'Decks' }).click()
     await page.getByLabel('Deck name').fill('Nav Test')

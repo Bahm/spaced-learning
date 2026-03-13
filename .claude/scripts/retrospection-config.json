@@ -1,0 +1,13 @@
+{
+  "resetDay": "Monday",
+  "resetHourUTC": 0,
+  "windowHours": 2,
+  "maxBudgetUsd": 5,
+  "tasks": [
+    "Fix any failing unit tests or type errors",
+    "Remove dead code and unused imports",
+    "Audit dependencies for updates",
+    "Improve test coverage for uncovered domain functions",
+    "Refactor overly complex functions"
+  ]
+}

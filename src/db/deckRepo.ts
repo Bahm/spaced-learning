@@ -4,6 +4,7 @@ import { createCard } from '../domain/cards'
 import type { SeedCard } from './seedData'
 import { VIETNAMESE_SEED_CARDS } from './seedData'
 import { YOGA_SEED_CARDS } from './yogaSeedData'
+import { SENTENCES_SEED_CARDS } from './sentencesSeedData'
 
 export const addDeck = (deck: Deck): Promise<string> => db.decks.add(deck)
 
@@ -12,11 +13,13 @@ export const getAllDecks = (): Promise<Deck[]> =>
 
 export const DEFAULT_DECK_ID = 'default-vietnamese-deck'
 export const YOGA_DECK_ID = 'default-yoga-deck'
+export const SENTENCES_DECK_ID = 'default-sentences-deck'
 
 /** Map of public deck IDs to their seed card data. */
 const SEED_CARD_MAP: Record<string, SeedCard[]> = {
   [DEFAULT_DECK_ID]: VIETNAMESE_SEED_CARDS,
   [YOGA_DECK_ID]: YOGA_SEED_CARDS,
+  [SENTENCES_DECK_ID]: SENTENCES_SEED_CARDS,
 }
 
 /** Checks whether a given deck ID is a public (catalog) deck. */

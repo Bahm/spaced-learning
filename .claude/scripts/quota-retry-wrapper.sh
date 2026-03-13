@@ -66,13 +66,20 @@ parse_reset_time() {
     return 0
   fi
 
+  # Try "resets <time> (<timezone>)" format (e.g. "resets 11pm (Asia/Saigon)")
+  reset_str=$(echo "$output" | grep -oiP '(?:reset(?:s)?)\s+\K\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*(?:\([^)]+\))?' | head -1)
+  if [ -n "$reset_str" ]; then
+    echo "$reset_str"
+    return 0
+  fi
+
   return 1
 }
 
 # Detect if the output contains a quota/rate-limit error
 is_quota_error() {
   local output="$1"
-  echo "$output" | grep -qiP 'quota|rate.limit|token.limit|usage.limit|billing|credit|exceeded.*limit'
+  echo "$output" | grep -qiP 'quota|rate.limit|token.limit|usage.limit|billing|credit|exceeded.*limit|hit\s+(your\s+)?limit'
 }
 
 # Calculate seconds to wait until the parsed reset time
@@ -80,11 +87,32 @@ calculate_wait_secs() {
   local reset_str="$1"
   local reset_epoch now_epoch wait_secs
 
-  reset_epoch=$(date -d "$reset_str" +%s 2>/dev/null) || return 1
+  # Handle "11pm (Asia/Saigon)" format — extract timezone from parens
+  local tz_override=""
+  local paren_re='[(]([^)]+)[)]'
+  if [[ "$reset_str" =~ $paren_re ]]; then
+    tz_override="${BASH_REMATCH[1]}"
+    # Remove the parenthesized timezone from the time string
+    reset_str=$(echo "$reset_str" | sed 's/\s*([^)]*)//g' | xargs)
+    # Parse the time in the specified timezone
+    reset_epoch=$(TZ="$tz_override" date -d "today $reset_str" +%s 2>/dev/null) || \
+      reset_epoch=$(TZ="$tz_override" date -d "tomorrow $reset_str" +%s 2>/dev/null) || return 1
+  else
+    reset_epoch=$(date -d "$reset_str" +%s 2>/dev/null) || return 1
+  fi
+
   now_epoch=$(date +%s)
 
   if [ "$reset_epoch" -le "$now_epoch" ]; then
-    # Reset time is in the past — use default wait
+    # Reset time is in the past for today — try tomorrow
+    if [ -n "$tz_override" ]; then
+      reset_epoch=$(TZ="$tz_override" date -d "tomorrow $reset_str" +%s 2>/dev/null) || return 1
+    else
+      return 1
+    fi
+  fi
+
+  if [ "$reset_epoch" -le "$now_epoch" ]; then
     return 1
   fi
 

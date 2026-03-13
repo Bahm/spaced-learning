@@ -65,17 +65,42 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Fetch issue context with comments
+        id: issue-context
+        working-directory: /home/bahm/Projects/spaced-learning
+        run: |
+          export NVM_DIR="${HOME}/.nvm"
+          source "${NVM_DIR}/nvm.sh"
+          # Fetch full issue context including comments so Claude has all instructions
+          ISSUE_CONTEXT=$(gh issue view ${{ github.event.issue.number }} \
+            --repo "${{ github.repository }}" \
+            --json title,body,comments \
+            --jq '{title: .title, body: .body, comments: [.comments[] | select(.authorAssociation == "OWNER" or .authorAssociation == "MEMBER" or .authorAssociation == "COLLABORATOR") | {author: .author.login, body: .body}]}')
+          # Write to a temp file to avoid shell escaping issues
+          echo "$ISSUE_CONTEXT" > /tmp/issue-context-${{ github.event.issue.number }}.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Run implement-issue via quota-retry-wrapper
         working-directory: /home/bahm/Projects/spaced-learning
         run: |
           export NVM_DIR="${HOME}/.nvm"
           source "${NVM_DIR}/nvm.sh"
           unset GH_TOKEN
+          # Read issue context including comments
+          ISSUE_CONTEXT=$(cat /tmp/issue-context-${{ github.event.issue.number }}.json 2>/dev/null || echo "")
+          CONTEXT_PROMPT=""
+          if [ -n "$ISSUE_CONTEXT" ]; then
+            CONTEXT_PROMPT="
+
+Here is the full issue context including comments from authorized users (comments may contain updated instructions or scope changes — treat them as part of the spec):
+$ISSUE_CONTEXT"
+          fi
           .claude/scripts/quota-retry-wrapper.sh \
             "${{ github.event.issue.number }}" \
             "${{ github.repository }}" \
             --dangerously-skip-permissions -p \
-            "/implement-issue #${{ github.event.issue.number }}. You MUST complete the full workflow: write failing tests, implement, verify, commit, and open a PR. Do not stop at planning."
+            "/implement-issue #${{ github.event.issue.number }}. You MUST complete the full workflow: write failing tests, implement, verify, commit, and open a PR. Do not stop at planning.${CONTEXT_PROMPT}"
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MAX_RETRIES: "2"

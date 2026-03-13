@@ -68,6 +68,41 @@ test.describe('Flashcard app', () => {
     await expect(page.getByRole('heading', { name: 'Spaced Learning' })).toBeVisible()
   })
 
+  test('many rapid back gestures at root do not leave the app', async ({ page }) => {
+    // Simulate aggressive back gestures (e.g., Firefox Android PWA edge swipe)
+    // With only one sentinel, this could escape the app's history stack
+    await expect(page.getByRole('heading', { name: 'Spaced Learning' })).toBeVisible()
+
+    for (let i = 0; i < 5; i++) {
+      await page.goBack()
+      await page.waitForTimeout(100)
+    }
+
+    // App must still be visible after many back gestures
+    await expect(page.getByRole('heading', { name: 'Spaced Learning' })).toBeVisible()
+  })
+
+  test('back gestures after navigating multiple sub-views do not leave the app', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Deep Nav')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+
+    // Navigate into sub-view and back, twice
+    for (let i = 0; i < 2; i++) {
+      await page.locator('li').filter({ hasText: 'Deep Nav' }).getByRole('button', { name: 'Cards' }).click()
+      await page.goBack()
+      await expect(page.getByRole('button', { name: 'Decks' })).toBeVisible()
+    }
+
+    // Now hammer back at root level
+    for (let i = 0; i < 3; i++) {
+      await page.goBack()
+      await page.waitForTimeout(100)
+    }
+
+    await expect(page.getByRole('heading', { name: 'Spaced Learning' })).toBeVisible()
+  })
+
   test('browser back from deck review returns to decks list', async ({ page }) => {
     await page.getByRole('button', { name: 'Decks' }).click()
     await page.getByLabel('Deck name').fill('Nav Test')

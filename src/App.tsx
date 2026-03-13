@@ -31,10 +31,16 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    // Replace current entry with a sentinel, then push our real state on top.
-    // This ensures back from the root lands on the sentinel (same URL, popstate fires)
-    // instead of navigating away from the app (blank screen in PWA).
-    history.replaceState(null, '')
+    // Create a deep buffer of sentinel entries to prevent back gestures from
+    // ever reaching history index 0. On some browsers (Firefox Android PWA),
+    // going back past the first entry navigates away without firing popstate.
+    // Multiple sentinels ensure we always have room to catch the back gesture.
+    const sentinel = { __sentinel: true }
+    const SENTINEL_COUNT = 5
+    history.replaceState(sentinel, '')
+    for (let i = 0; i < SENTINEL_COUNT - 1; i++) {
+      history.pushState(sentinel, '')
+    }
     history.pushState(view, '')
 
     const onPopState = (e: PopStateEvent) => {

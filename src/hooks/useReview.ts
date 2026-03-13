@@ -7,6 +7,7 @@ import type { Card, Rating } from '../domain/types'
 interface ReviewState {
   readonly currentCard: Card | null
   readonly remaining: number
+  readonly isLoading: boolean
   readonly isRevealed: boolean
   readonly reveal: () => void
   readonly rate: (rating: Rating) => Promise<void>
@@ -15,13 +16,13 @@ interface ReviewState {
 export const useReview = (deckId?: string): ReviewState => {
   const [isRevealed, setIsRevealed] = useState(false)
 
-  const dueCards: Card[] =
+  const dueCards =
     useLiveQuery(
       () => (deckId ? getDueCardsByDeck(deckId) : getDueCards()),
       [deckId],
-      [],
-    ) ?? []
-  const currentCard = dueCards[0] ?? null
+    )
+  const isLoading = dueCards === undefined
+  const currentCard = dueCards?.[0] ?? null
 
   const reveal = () => setIsRevealed(true)
 
@@ -36,7 +37,8 @@ export const useReview = (deckId?: string): ReviewState => {
 
   return {
     currentCard,
-    remaining: dueCards.length,
+    remaining: dueCards?.length ?? 0,
+    isLoading,
     isRevealed,
     reveal,
     rate,

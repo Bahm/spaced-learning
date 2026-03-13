@@ -16,7 +16,9 @@ interface Props {
 }
 
 export const CardList = ({ deckId, deckName }: Props) => {
-  const cards = useCards(deckId)
+  const cardsRaw = useCards(deckId)
+  const isLoading = cardsRaw === undefined
+  const cards = cardsRaw ?? []
   const [undo, setUndo] = useState<UndoState | null>(null)
 
   useEffect(() => {
@@ -44,9 +46,9 @@ export const CardList = ({ deckId, deckName }: Props) => {
   }
 
   return (
-    <div>
-      <h2>{deckName} — Cards ({cards.length})</h2>
-      {cards.length === 0 && !undo && <p style={{ color: '#888' }}>No cards yet. Add one above.</p>}
+    <div aria-busy={isLoading}>
+      <h2>{deckName} — Cards {isLoading ? '' : `(${cards.length})`}</h2>
+      {!isLoading && cards.length === 0 && !undo && <p style={{ color: '#888' }}>No cards yet. Add one above.</p>}
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {cards.map((card) => (
           <li

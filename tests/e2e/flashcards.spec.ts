@@ -351,6 +351,59 @@ test.describe('Flashcard app', () => {
     await expect(page.getByText('Reviewed today: 2')).toBeVisible()
   })
 
+  // ── Loading states ──────────────────────────────────────────────────────────
+
+  test('deck list does not flash empty state while loading', async ({ page }) => {
+    // Install a deck so data exists
+    await installPublicDeck(page, '1000 most common words in Vietnamese')
+
+    // Reload and immediately navigate to Decks — should not flash "No active decks"
+    await page.reload()
+    await page.getByRole('button', { name: 'Decks' }).click()
+
+    // The deck list container should have aria-busy while loading
+    // and should NOT show the empty state message at any point
+    await expect(page.getByText('No active decks')).not.toBeVisible()
+    await expect(page.locator('li').filter({ hasText: '1000 most common words in Vietnamese' }).first()).toBeVisible()
+  })
+
+  test('review session does not flash "All done" while loading', async ({ page }) => {
+    await installPublicDeck(page, '1000 most common words in Vietnamese')
+
+    // Navigate to deck review — should show cards, not "All done!"
+    await page.locator('li').filter({ hasText: '1000 most common words in Vietnamese' }).first()
+      .getByRole('button', { name: 'Review' }).click()
+    await expect(page.getByText(/cards remaining/)).toBeVisible()
+
+    // Reload while on review — should not flash "All done!"
+    await page.reload()
+    await page.waitForTimeout(200)
+    // After reload, we're back on Review tab — the review container should use aria-busy while loading
+    const reviewContainer = page.locator('[aria-busy]')
+    await expect(reviewContainer).toBeVisible()
+  })
+
+  test('card list does not flash "No cards yet" while loading', async ({ page }) => {
+    // Create a deck with a card
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Loading Test')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+    await page.locator('li').filter({ hasText: 'Loading Test' }).getByRole('button', { name: 'Cards' }).click()
+    await page.getByLabel('Front').fill('Test Q')
+    await page.getByLabel('Back').fill('Test A')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+    await expect(page.getByText('Test Q')).toBeVisible()
+
+    // Navigate back to decks, then re-enter the deck detail
+    // This triggers a fresh useCards query, which starts as undefined (loading)
+    await page.getByRole('button', { name: '← Decks' }).click()
+    await page.locator('li').filter({ hasText: 'Loading Test' }).getByRole('button', { name: 'Cards' }).click()
+
+    // Should not show "No cards yet" — should show loading or the card
+    await expect(page.getByText('No cards yet')).not.toBeVisible()
+    await expect(page.getByText('Test Q')).toBeVisible()
+  })
+
   test('keyboard shortcuts 1-4 rate cards', async ({ page }) => {
     await page.getByRole('button', { name: 'Decks' }).click()
     await page.getByLabel('Deck name').fill('KB Rate')

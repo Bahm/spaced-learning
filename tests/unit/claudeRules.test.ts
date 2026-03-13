@@ -85,6 +85,32 @@ describe('quota-retry wrapper script', () => {
     const content = readFileSync(WRAPPER_SCRIPT_PATH, 'utf-8')
     expect(content.startsWith('#!/')).toBe(true)
   })
+
+  it('is_quota_error matches "You\'ve hit your limit" message', () => {
+    const content = readFileSync(WRAPPER_SCRIPT_PATH, 'utf-8')
+    // Extract the is_quota_error grep pattern
+    const grepMatch = content.match(/is_quota_error\(\)\s*\{[\s\S]*?grep\s+-qiP\s+'([^']+)'/)
+    expect(grepMatch, 'is_quota_error must use grep -qiP with a pattern').not.toBeNull()
+    const pattern = grepMatch![1]!
+    // The actual Claude CLI message: "You've hit your limit · resets 11pm (Asia/Saigon)"
+    const regex = new RegExp(pattern, 'i')
+    expect(regex.test("You've hit your limit · resets 11pm (Asia/Saigon)")).toBe(true)
+  })
+
+  it('is_quota_error matches "hit your limit" without prefix', () => {
+    const content = readFileSync(WRAPPER_SCRIPT_PATH, 'utf-8')
+    const grepMatch = content.match(/is_quota_error\(\)\s*\{[\s\S]*?grep\s+-qiP\s+'([^']+)'/)
+    expect(grepMatch).not.toBeNull()
+    const pattern = grepMatch![1]!
+    const regex = new RegExp(pattern, 'i')
+    expect(regex.test("hit your limit")).toBe(true)
+  })
+
+  it('parse_reset_time handles "resets <time> (<timezone>)" format', () => {
+    const content = readFileSync(WRAPPER_SCRIPT_PATH, 'utf-8')
+    // The script must have a pattern that can extract time from "resets 11pm (Asia/Saigon)"
+    expect(content).toMatch(/resets?\s+\d|resets?\s+at|resets?\s+\S/i)
+  })
 })
 
 describe('implement-issue skill prevents duplicate PRs', () => {
@@ -110,6 +136,37 @@ describe('implement-from-issue workflow prevents duplicate PRs', () => {
 
   it('has a step to close existing PRs for the same issue before running Claude', () => {
     expect(workflowContent).toMatch(/close.*existing.*PR|Close existing PR|supersed/i)
+  })
+})
+
+describe('implement-issue skill reads issue comments', () => {
+  const skillContent = readFileSync(SKILL_PATH, 'utf-8')
+
+  it('step 1 instructs to read issue comments, not just title and body', () => {
+    const step1Match = skillContent.match(/### 1\. Read the spec([\s\S]*?)(?=### 2\.)/)
+    expect(step1Match, 'step 1 must exist').not.toBeNull()
+    const step1Content = step1Match![1]!
+    expect(step1Content).toMatch(/comments/i)
+  })
+
+  it('uses gh issue view with --json that includes comments field', () => {
+    const step1Match = skillContent.match(/### 1\. Read the spec([\s\S]*?)(?=### 2\.)/)
+    expect(step1Match, 'step 1 must exist').not.toBeNull()
+    const step1Content = step1Match![1]!
+    expect(step1Content).toMatch(/--json.*comments|comments.*--json/i)
+  })
+})
+
+describe('implement-from-issue workflow passes issue comments to Claude', () => {
+  const workflowContent = readFileSync(WORKFLOW_PATH, 'utf-8')
+
+  it('fetches issue comments before running Claude', () => {
+    expect(workflowContent).toMatch(/gh issue view.*comments|issue.*comments/i)
+  })
+
+  it('passes issue context including comments to the Claude prompt', () => {
+    // The prompt or an env var should contain the issue comments
+    expect(workflowContent).toMatch(/ISSUE_CONTEXT|issue_context|comments/i)
   })
 })
 

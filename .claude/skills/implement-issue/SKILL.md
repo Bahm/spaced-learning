@@ -24,7 +24,7 @@ description: >
 > **All 9 steps are mandatory on every PR** — including style-only, docs-only, and trivial fixes. The steps most tempting to skip on "simple" PRs (TDD in step 4, retrospection in step 9) are the ones where discipline pays off most.
 
 ### 1. Read the spec
-- If given an issue number: `gh issue view <N>` to read title + body
+- If given an issue number: `gh issue view <N> --json title,body,labels,comments` to read the full issue context including all comments. Comments often contain updated instructions, clarifications, or scope changes from the user — they are as important as the original body.
 - If given a description: treat that as the spec
 - Confirm understanding before writing any code
 

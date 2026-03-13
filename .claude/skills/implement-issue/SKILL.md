@@ -147,8 +147,16 @@ Omit the `Closes #N` line when there is no associated issue.
 5. **Promote stable lessons to CLAUDE.md** — after updating MEMORY.md, scan all lessons and ask: would this lesson help during ad-hoc work when no skill is loaded? If yes, it belongs in CLAUDE.md (which is always in context), not just in a skill or MEMORY.md. A lesson saved only to a skill is invisible when the mistake happens outside that skill's scope. The distinction:
    - **Promote to CLAUDE.md**: anything that applies to general work — git safety checks, domain invariants, DB/API quirks, test patterns, coding constraints
    - **Keep in MEMORY.md only**: lessons that are purely about Claude's internal operating procedures and wouldn't affect code or git actions
-6. **Improve this skill via `/skill-creator`** — if any lessons from this session apply to the implement-issue *workflow itself* (a step that was skipped, a pattern that should be enforced, an instruction that was unclear), invoke `/skill-creator` to apply them as targeted edits to this SKILL.md. You don't need the full eval loop every time — a focused edit pass is enough for small improvements. Use the full eval loop when making substantial structural changes. The goal: the skill gets slightly better after every session, not only when problems are explicitly reported.
-7. **Commit and push retrospection changes** — the edits above produce real file changes (MEMORY.md, CLAUDE.md, SKILL.md). Stage and commit them so they land on `main` when the PR merges. Use a `docs:` or `chore:` prefix:
+6. **Best-practices audit** — routinely verify the project follows Claude Code best practices. Check each item and fix any drift:
+   - [ ] `CLAUDE.md` is under 200 lines (move verbose content to path-scoped rules in `.claude/rules/`)
+   - [ ] Path-scoped rules exist in `.claude/rules/` for each major code area (`src/domain/`, `src/db/`, `tests/e2e/`) with valid YAML frontmatter and `paths:` keys
+   - [ ] PostToolUse hook runs `tsc --noEmit` after Edit/Write (in `.claude/settings.json`)
+   - [ ] Notification hook is configured for user attention prompts
+   - [ ] Pre-commit hook blocks broken commits (tsc + vitest)
+   - [ ] No stale or redundant content duplicated between CLAUDE.md and path-scoped rules
+   If any item is missing or broken, fix it in this step and include the fix in the commit. This audit exists because best practices drift silently — PR #33 applied them once, but without a recurring check they erode over time.
+7. **Improve this skill via `/skill-creator`** — if any lessons from this session apply to the implement-issue *workflow itself* (a step that was skipped, a pattern that should be enforced, an instruction that was unclear), invoke `/skill-creator` to apply them as targeted edits to this SKILL.md. You don't need the full eval loop every time — a focused edit pass is enough for small improvements. Use the full eval loop when making substantial structural changes. The goal: the skill gets slightly better after every session, not only when problems are explicitly reported.
+8. **Commit and push retrospection changes** — the edits above produce real file changes (MEMORY.md, CLAUDE.md, SKILL.md). Stage and commit them so they land on `main` when the PR merges. Use a `docs:` or `chore:` prefix:
    ```bash
    git add CLAUDE.md .claude/skills/implement-issue/SKILL.md
    # MEMORY.md lives outside the repo — no need to stage it

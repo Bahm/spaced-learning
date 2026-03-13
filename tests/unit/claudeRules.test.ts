@@ -85,6 +85,58 @@ describe('quota-retry wrapper script', () => {
   })
 })
 
+describe('pre-reset retrospection script', () => {
+  const RETRO_SCRIPT_PATH = join(__dirname, '../../.claude/scripts/pre-reset-retrospection.sh')
+  const RETRO_CONFIG_PATH = join(__dirname, '../../.claude/scripts/retrospection-config.json')
+
+  it('pre-reset-retrospection.sh exists', () => {
+    expect(existsSync(RETRO_SCRIPT_PATH)).toBe(true)
+  })
+
+  it('is executable (has shebang)', () => {
+    const content = readFileSync(RETRO_SCRIPT_PATH, 'utf-8')
+    expect(content.startsWith('#!/')).toBe(true)
+  })
+
+  it('checks if runner is idle before starting', () => {
+    const content = readFileSync(RETRO_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/idle|busy|lock|running/i)
+  })
+
+  it('calculates time window relative to quota reset', () => {
+    const content = readFileSync(RETRO_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/reset.*day|RESET_DAY|reset_day/i)
+    expect(content).toMatch(/window|WINDOW|hours.*before/i)
+  })
+
+  it('uses --max-budget-usd as spending cap', () => {
+    const content = readFileSync(RETRO_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/max-budget-usd|MAX_BUDGET/)
+  })
+
+  it('creates a branch and PR for retrospection changes', () => {
+    const content = readFileSync(RETRO_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/git checkout -b|branch/)
+    expect(content).toMatch(/gh pr create|pr create/)
+  })
+
+  it('retrospection-config.json exists and has required fields', () => {
+    expect(existsSync(RETRO_CONFIG_PATH)).toBe(true)
+    const config = JSON.parse(readFileSync(RETRO_CONFIG_PATH, 'utf-8'))
+    expect(config).toHaveProperty('resetDay')
+    expect(config).toHaveProperty('resetHourUTC')
+    expect(config).toHaveProperty('windowHours')
+    expect(config).toHaveProperty('maxBudgetUsd')
+  })
+
+  it('config has sensible defaults', () => {
+    const config = JSON.parse(readFileSync(RETRO_CONFIG_PATH, 'utf-8'))
+    expect(config.windowHours).toBeGreaterThanOrEqual(1)
+    expect(config.windowHours).toBeLessThanOrEqual(6)
+    expect(config.maxBudgetUsd).toBeGreaterThan(0)
+  })
+})
+
 describe('implement-from-issue workflow uses quota retry', () => {
   const workflowContent = readFileSync(WORKFLOW_PATH, 'utf-8')
 

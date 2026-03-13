@@ -48,7 +48,7 @@ Three Dexie tables (schema version 4). See `src/db/db.ts` for full definitions.
 ## Coding constraints
 
 - No classes except `Error` subclasses. Domain functions return new objects — never mutate.
-- `useLiveQuery` returns `undefined` on first render; always provide a default (`?? []` or `?? 0`).
+- `useLiveQuery` returns `undefined` on first render. Do NOT provide defaults — return `T | undefined` from hooks so components can distinguish "loading" (`undefined`) from "empty" (`[]`/`0`). Use `aria-busy` on containers during loading.
 - `noUncheckedIndexedAccess` is enabled — always null-check array/index access.
 - Cards with no schedule entry are treated as immediately due.
 - React StrictMode runs effects twice in dev — guard `useEffect` side effects with check-then-write inside a single Dexie transaction.

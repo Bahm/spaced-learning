@@ -85,6 +85,32 @@ describe('quota-retry wrapper script', () => {
   })
 })
 
+describe('implement-issue skill prevents duplicate PRs', () => {
+  const skillContent = readFileSync(SKILL_PATH, 'utf-8')
+
+  it('step 8 instructs to check for existing open PRs for the same issue', () => {
+    const step8Match = skillContent.match(/### 8\. Create PR([\s\S]*?)(?=### 9\.|$)/)
+    expect(step8Match, 'step 8 must exist').not.toBeNull()
+    const step8Content = step8Match![1]!
+    expect(step8Content).toMatch(/gh pr list.*Closes #|existing.*open.*PR|duplicate.*PR/i)
+  })
+
+  it('step 8 instructs to close superseded PRs before creating a new one', () => {
+    const step8Match = skillContent.match(/### 8\. Create PR([\s\S]*?)(?=### 9\.|$)/)
+    expect(step8Match, 'step 8 must exist').not.toBeNull()
+    const step8Content = step8Match![1]!
+    expect(step8Content).toMatch(/gh pr close|close.*superseded|close.*existing/i)
+  })
+})
+
+describe('implement-from-issue workflow prevents duplicate PRs', () => {
+  const workflowContent = readFileSync(WORKFLOW_PATH, 'utf-8')
+
+  it('has a step to close existing PRs for the same issue before running Claude', () => {
+    expect(workflowContent).toMatch(/close.*existing.*PR|Close existing PR|supersed/i)
+  })
+})
+
 describe('implement-from-issue workflow uses quota retry', () => {
   const workflowContent = readFileSync(WORKFLOW_PATH, 'utf-8')
 

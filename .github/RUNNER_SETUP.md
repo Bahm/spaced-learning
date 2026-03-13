@@ -79,6 +79,40 @@ Configuration via environment variables in the workflow:
 
 The workflow timeout is set to 360 minutes (6 hours) to accommodate quota waits. GitHub Actions enforces a hard limit of 6 hours per job.
 
+## Pre-reset retrospection
+
+Before the weekly quota resets, idle quota can be used for automated quality improvements (dead code removal, test coverage, refactoring). The script `.claude/scripts/pre-reset-retrospection.sh` self-gates on both a time window and runner idleness.
+
+### Configuration
+
+Edit `.claude/scripts/retrospection-config.json`:
+
+| Field | Description | Default |
+|---|---|---|
+| `resetDay` | Day of week quota resets | `"Monday"` |
+| `resetHourUTC` | UTC hour of reset (0-23) | `0` |
+| `windowHours` | Hours before reset to start | `2` |
+| `maxBudgetUsd` | Spending cap per session | `5` |
+| `tasks` | Prioritized task list | See file |
+
+### Cron setup
+
+Run every 15 minutes — the script self-gates so it only acts within the window:
+
+```bash
+crontab -e
+# Add:
+*/15 * * * * cd /home/bahm/Projects/spaced-learning && .claude/scripts/pre-reset-retrospection.sh >> /tmp/pre-reset-retrospection.log 2>&1
+```
+
+### Manual usage
+
+```bash
+npm run retrospection:dry    # preview what would happen
+npm run retrospection:force  # skip time-window check, run now
+npm run retrospection        # normal mode (respects time window)
+```
+
 ## Stopping the runner
 
 ```bash

@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync, readdirSync, existsSync } from 'fs'
+import { readFileSync, readdirSync, existsSync, statSync } from 'fs'
 import { join } from 'path'
 
 const RULES_DIR = join(__dirname, '../../.claude/rules')
 const SKILL_PATH = join(__dirname, '../../.claude/skills/implement-issue/SKILL.md')
 const WRAPPER_SCRIPT_PATH = join(__dirname, '../../.claude/scripts/quota-retry-wrapper.sh')
 const WORKFLOW_PATH = join(__dirname, '../../.github/workflows/implement-from-issue.yml')
+const RETROSPECTION_SCRIPT_PATH = join(__dirname, '../../.claude/scripts/pre-reset-retrospection.sh')
+const RETROSPECTION_CONFIG_PATH = join(__dirname, '../../.claude/scripts/retrospection-config.json')
 
 describe('.claude/rules/ structure', () => {
   it('rules directory exists', () => {
@@ -127,5 +129,93 @@ describe('implement-from-issue workflow uses quota retry', () => {
 
   it('posts a comment when waiting for quota reset', () => {
     expect(workflowContent).toMatch(/quota.*reset|waiting.*quota/i)
+  })
+})
+
+describe('pre-reset retrospection script', () => {
+  it('pre-reset-retrospection.sh exists', () => {
+    expect(existsSync(RETROSPECTION_SCRIPT_PATH)).toBe(true)
+  })
+
+  it('is executable (has shebang)', () => {
+    const content = readFileSync(RETROSPECTION_SCRIPT_PATH, 'utf-8')
+    expect(content.startsWith('#!/')).toBe(true)
+  })
+
+  it('has executable permissions', () => {
+    const stat = statSync(RETROSPECTION_SCRIPT_PATH)
+    const isExecutable = (stat.mode & 0o111) !== 0
+    expect(isExecutable).toBe(true)
+  })
+
+  it('checks if runner is idle before starting', () => {
+    const content = readFileSync(RETROSPECTION_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/claude.*process|pgrep|pidof|lock/i)
+  })
+
+  it('calculates time window relative to quota reset', () => {
+    const content = readFileSync(RETROSPECTION_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/windowHours|window_hours|WINDOW/i)
+    expect(content).toMatch(/resetDay|reset_day|RESET_DAY/i)
+  })
+
+  it('uses --max-budget-usd as spending cap', () => {
+    const content = readFileSync(RETROSPECTION_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/max-budget-usd/)
+  })
+
+  it('creates a branch for retrospection changes', () => {
+    const content = readFileSync(RETROSPECTION_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/git checkout -b|git switch -c/)
+  })
+
+  it('creates a PR for retrospection changes', () => {
+    const content = readFileSync(RETROSPECTION_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/gh pr create/)
+  })
+
+  it('supports --dry-run and --force flags', () => {
+    const content = readFileSync(RETROSPECTION_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/dry.run/i)
+    expect(content).toMatch(/force/i)
+  })
+})
+
+describe('retrospection-config.json', () => {
+  it('exists with required fields', () => {
+    expect(existsSync(RETROSPECTION_CONFIG_PATH)).toBe(true)
+    const config = JSON.parse(readFileSync(RETROSPECTION_CONFIG_PATH, 'utf-8'))
+    expect(config).toHaveProperty('resetDay')
+    expect(config).toHaveProperty('resetHourUTC')
+    expect(config).toHaveProperty('windowHours')
+    expect(config).toHaveProperty('maxBudgetUsd')
+    expect(config).toHaveProperty('tasks')
+  })
+
+  it('has sensible defaults', () => {
+    const config = JSON.parse(readFileSync(RETROSPECTION_CONFIG_PATH, 'utf-8'))
+    expect(typeof config.resetDay).toBe('string')
+    expect(config.resetHourUTC).toBeGreaterThanOrEqual(0)
+    expect(config.resetHourUTC).toBeLessThanOrEqual(23)
+    expect(config.windowHours).toBeGreaterThan(0)
+    expect(config.maxBudgetUsd).toBeGreaterThan(0)
+    expect(Array.isArray(config.tasks)).toBe(true)
+    expect(config.tasks.length).toBeGreaterThan(0)
+  })
+})
+
+describe('package.json has retrospection npm scripts', () => {
+  const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8'))
+
+  it('has retrospection script', () => {
+    expect(pkg.scripts.retrospection).toMatch(/pre-reset-retrospection/)
+  })
+
+  it('has retrospection:dry script', () => {
+    expect(pkg.scripts['retrospection:dry']).toMatch(/dry-run/)
+  })
+
+  it('has retrospection:force script', () => {
+    expect(pkg.scripts['retrospection:force']).toMatch(/force/)
   })
 })

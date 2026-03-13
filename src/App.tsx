@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ReviewSession } from './components/ReviewSession'
 import { DeckList } from './components/DeckList'
 import { DeckDetail } from './components/DeckDetail'
@@ -17,11 +17,13 @@ const TABS: { id: Tab; label: string }[] = [
 
 export default function App() {
   const [view, setViewState] = useState<View>({ type: 'tab', tab: 'review' })
+  const historyDepth = useRef(0)
 
   const navigate = useCallback((newView: View) => {
     const isSubView = newView.type === 'deck-review' || newView.type === 'deck-detail'
     if (isSubView) {
       history.pushState(newView, '')
+      historyDepth.current++
     } else {
       history.replaceState(newView, '')
     }
@@ -29,14 +31,22 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    // Set initial state so popstate has something to land on
-    history.replaceState(view, '')
+    // Replace current entry with a sentinel, then push our real state on top.
+    // This ensures back from the root lands on the sentinel (same URL, popstate fires)
+    // instead of navigating away from the app (blank screen in PWA).
+    history.replaceState(null, '')
+    history.pushState(view, '')
 
     const onPopState = (e: PopStateEvent) => {
       if (e.state && typeof e.state === 'object' && 'type' in e.state) {
+        historyDepth.current = Math.max(0, historyDepth.current - 1)
         setViewState(e.state as View)
       } else {
-        setViewState({ type: 'tab', tab: 'review' })
+        // Hit sentinel — push default state back to stay in the app
+        const defaultView: View = { type: 'tab', tab: 'review' }
+        history.pushState(defaultView, '')
+        historyDepth.current = 0
+        setViewState(defaultView)
       }
     }
     window.addEventListener('popstate', onPopState)

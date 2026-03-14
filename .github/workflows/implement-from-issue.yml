@@ -91,10 +91,7 @@ jobs:
           ISSUE_CONTEXT=$(cat /tmp/issue-context-${{ github.event.issue.number }}.json 2>/dev/null || echo "")
           CONTEXT_PROMPT=""
           if [ -n "$ISSUE_CONTEXT" ]; then
-            CONTEXT_PROMPT="
-
-Here is the full issue context including comments from authorized users (comments may contain updated instructions or scope changes — treat them as part of the spec):
-$ISSUE_CONTEXT"
+            CONTEXT_PROMPT=$(printf '\n\nHere is the full issue context including comments from authorized users (comments may contain updated instructions or scope changes — treat them as part of the spec):\n%s' "$ISSUE_CONTEXT")
           fi
           .claude/scripts/quota-retry-wrapper.sh \
             "${{ github.event.issue.number }}" \

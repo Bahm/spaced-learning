@@ -22,6 +22,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate workflow YAML
+        run: |
+          pip install --quiet pyyaml
+          python3 -c "
+          import yaml, glob, sys
+          errors = 0
+          for f in glob.glob('.github/workflows/*.yml'):
+              try:
+                  yaml.safe_load(open(f))
+                  print(f'✓ {f}')
+              except yaml.YAMLError as e:
+                  print(f'✗ {f}: {e}', file=sys.stderr)
+                  errors += 1
+          sys.exit(errors)
+          "
+
       - name: Type check
         run: npx tsc --noEmit
 

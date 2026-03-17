@@ -5,9 +5,9 @@
   "maxBudgetUsd": 5,
   "tasks": [
     "Fix any failing unit tests or type errors",
-    "Remove dead code and unused imports",
+    "Audit for new architectural violations not yet covered by structural tests",
     "Audit dependencies for updates",
     "Improve test coverage for uncovered domain functions",
-    "Refactor overly complex functions"
+    "Review and update MEMORY.md for stale or redundant lessons"
   ]
 }

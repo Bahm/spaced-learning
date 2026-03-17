@@ -66,11 +66,13 @@ db.version(5).stores({
   const { VIETNAMESE_SEED_CARDS } = await import('./seedData')
   const { YOGA_SEED_CARDS } = await import('./yogaSeedData')
   const { SENTENCES_SEED_CARDS } = await import('./sentencesSeedData')
+  const { FOOD_SEED_CARDS } = await import('./foodSeedData')
 
   const seedMap: Record<string, SeedCard[]> = {
     'default-vietnamese-deck': VIETNAMESE_SEED_CARDS,
     'default-yoga-deck': YOGA_SEED_CARDS,
     'default-sentences-deck': SENTENCES_SEED_CARDS,
+    'default-food-deck': FOOD_SEED_CARDS,
   }
 
   for (const [deckId, seedCards] of Object.entries(seedMap)) {

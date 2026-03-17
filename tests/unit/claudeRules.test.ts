@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, existsSync, statSync } from 'fs'
 import { join } from 'path'
 
+// CI-SAFETY NOTE: All files tested here are git-tracked (committed with
+// correct permissions). Never test .git/hooks/ (missing in CI checkout)
+// or rely on local-only files. statSync().mode is safe for git-tracked
+// scripts because git preserves the executable bit.
 const RULES_DIR = join(__dirname, '../../.claude/rules')
 const SKILL_PATH = join(__dirname, '../../.claude/skills/implement-issue/SKILL.md')
 const WRAPPER_SCRIPT_PATH = join(__dirname, '../../.claude/scripts/quota-retry-wrapper.sh')
@@ -37,6 +41,24 @@ describe('.claude/rules/ structure', () => {
     const claudeMd = readFileSync(join(__dirname, '../../CLAUDE.md'), 'utf-8')
     const lineCount = claudeMd.split('\n').length
     expect(lineCount).toBeLessThanOrEqual(200)
+  })
+})
+
+describe('v5 migration covers all public decks', () => {
+  it('every PUBLIC_DECK_CATALOG ID appears in the v5 migration seedMap', () => {
+    const dbTs = readFileSync(join(__dirname, '../../src/db/db.ts'), 'utf-8')
+    const decksTs = readFileSync(join(__dirname, '../../src/domain/decks.ts'), 'utf-8')
+
+    // Extract all public deck IDs from PUBLIC_DECK_CATALOG
+    const catalogIds = [...decksTs.matchAll(/id:\s*'([^']+)'/g)].map(m => m[1]!)
+
+    // Extract all IDs referenced in the v5 migration seedMap
+    const v5Block = dbTs.match(/db\.version\(5\)[\s\S]*?(?=db\.version\(6\)|export)/)?.[0] ?? ''
+    const seedMapIds = [...v5Block.matchAll(/'([^']+)':\s*\w+_SEED_CARDS/g)].map(m => m[1]!)
+
+    for (const id of catalogIds) {
+      expect(seedMapIds, `v5 migration seedMap must include ${id}`).toContain(id)
+    }
   })
 })
 

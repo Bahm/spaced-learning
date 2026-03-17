@@ -39,7 +39,7 @@ Separation of pure logic from side effects:
 
 ## DB schema
 
-Three Dexie tables (schema version 4). See `src/db/db.ts` for full definitions.
+Three Dexie tables (schema version 5). See `src/db/db.ts` for full definitions.
 
 `Card.deckId` is required. `Deck.status` is `'active' | 'archived' | 'uninstalled'`.
 

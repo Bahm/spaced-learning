@@ -73,6 +73,14 @@ jobs:
           # Run idempotent setup — skips if already installed
           .claude/scripts/setup-superpowers.sh || echo "Warning: superpowers setup failed (non-blocking)"
 
+      - name: Ensure gstack skills are available
+        working-directory: /home/bahm/Projects/spaced-learning
+        run: |
+          export NVM_DIR="${HOME}/.nvm"
+          source "${NVM_DIR}/nvm.sh"
+          # Run idempotent setup — skips if already installed
+          .claude/scripts/setup-gstack.sh || echo "Warning: gstack setup failed (non-blocking)"
+
       - name: Fetch issue context with comments
         id: issue-context
         working-directory: /home/bahm/Projects/spaced-learning

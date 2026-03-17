@@ -720,3 +720,79 @@ describe('pre-reset-retrospection.sh calls fetch-weekly-reset.sh', () => {
     expect(content).toMatch(/fetch-weekly-reset/)
   })
 })
+
+describe('gstack integration', () => {
+  const SETUP_SCRIPT_PATH = join(__dirname, '../../.claude/scripts/setup-gstack.sh')
+  const GSTACK_RULES_PATH = join(__dirname, '../../.claude/rules/gstack-integration.md')
+
+  it('setup-gstack.sh exists', () => {
+    expect(existsSync(SETUP_SCRIPT_PATH)).toBe(true)
+  })
+
+  it('setup script is executable (has shebang)', () => {
+    const content = readFileSync(SETUP_SCRIPT_PATH, 'utf-8')
+    expect(content.startsWith('#!/')).toBe(true)
+  })
+
+  it('setup script has executable permissions', () => {
+    const stat = statSync(SETUP_SCRIPT_PATH)
+    const isExecutable = (stat.mode & 0o111) !== 0
+    expect(isExecutable).toBe(true)
+  })
+
+  it('setup script clones garrytan/gstack from GitHub', () => {
+    const content = readFileSync(SETUP_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/garrytan\/gstack/)
+    expect(content).toMatch(/git clone/)
+  })
+
+  it('setup script is idempotent (checks if already installed)', () => {
+    const content = readFileSync(SETUP_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/already|installed|skip|exists/i)
+  })
+
+  it('setup script runs the gstack setup command', () => {
+    const content = readFileSync(SETUP_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/\.\/setup/)
+  })
+
+  it('gstack integration rules file exists', () => {
+    expect(existsSync(GSTACK_RULES_PATH)).toBe(true)
+  })
+
+  it('gstack rules have valid YAML frontmatter', () => {
+    const content = readFileSync(GSTACK_RULES_PATH, 'utf-8')
+    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/)
+    expect(frontmatterMatch, 'must have YAML frontmatter').not.toBeNull()
+    const frontmatter = frontmatterMatch![1]!
+    expect(frontmatter).toContain('paths:')
+  })
+
+  it('gstack rules document integration with existing automation', () => {
+    const content = readFileSync(GSTACK_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/implement-issue/i)
+    expect(content).toMatch(/automation|automated/i)
+  })
+
+  it('gstack rules document key skills relevant to this project', () => {
+    const content = readFileSync(GSTACK_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/\/review/i)
+    expect(content).toMatch(/\/qa/i)
+  })
+})
+
+describe('implement-from-issue workflow includes gstack setup', () => {
+  const workflowContent = readFileSync(WORKFLOW_PATH, 'utf-8')
+
+  it('workflow ensures gstack is available before running Claude', () => {
+    expect(workflowContent).toMatch(/gstack|setup-gstack/i)
+  })
+})
+
+describe('RUNNER_SETUP.md documents gstack', () => {
+  const runnerSetup = readFileSync(join(__dirname, '../../.github/RUNNER_SETUP.md'), 'utf-8')
+
+  it('documents gstack installation', () => {
+    expect(runnerSetup).toMatch(/gstack/i)
+  })
+})

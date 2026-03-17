@@ -68,6 +68,10 @@ When compacting, preserve: the nvm sourcing requirement, snake_case field names 
 
 The [Superpowers framework](https://github.com/obra/superpowers) is installed globally. It provides `/superpowers:brainstorming`, `/superpowers:plan`, `/superpowers:tdd`, and other structured skills. See `.claude/rules/superpowers-integration.md` for how they complement `/implement-issue`.
 
+## gstack skills
+
+[gstack](https://github.com/garrytan/gstack) by Garry Tan provides role-based specialist skills: `/review` (deep code review), `/qa` (browser QA + fix), `/browse` (headless browser), `/retro` (retrospectives). See `.claude/rules/gstack-integration.md` for how they complement `/implement-issue` and Superpowers.
+
 ## Workflow
 
 1. Create a GitHub Issue describing the feature/fix

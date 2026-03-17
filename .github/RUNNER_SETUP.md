@@ -56,6 +56,17 @@ cd /home/bahm/Projects/spaced-learning
 
 The script is idempotent — safe to run multiple times. The workflow also runs it automatically before each issue implementation.
 
+### 6. Install gstack skills
+
+[gstack](https://github.com/garrytan/gstack) by Garry Tan provides role-based specialist skills (code review, QA, browser automation, retrospectives) that complement Superpowers and `/implement-issue`.
+
+```bash
+cd /home/bahm/Projects/spaced-learning
+.claude/scripts/setup-gstack.sh
+```
+
+The script is idempotent — safe to run multiple times. The workflow also runs it automatically before each issue implementation.
+
 ## Using it
 
 1. Create a GitHub Issue describing the feature or fix

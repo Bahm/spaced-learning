@@ -45,6 +45,17 @@ The workflow passes this to `claude` so it can call the model.
 gh label create auto-implement --color 0075ca --description "Trigger Claude Code to implement this issue automatically"
 ```
 
+### 5. Install the Superpowers plugin
+
+The [Superpowers framework](https://github.com/obra/superpowers) provides structured development skills (brainstorming, planning, TDD, review) that complement the project's `/implement-issue` workflow.
+
+```bash
+cd /home/bahm/Projects/spaced-learning
+.claude/scripts/setup-superpowers.sh
+```
+
+The script is idempotent — safe to run multiple times. The workflow also runs it automatically before each issue implementation.
+
 ## Using it
 
 1. Create a GitHub Issue describing the feature or fix

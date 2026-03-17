@@ -64,6 +64,10 @@ See `.claude/rules/e2e-testing.md` for Playwright-specific patterns and pitfalls
 
 When compacting, preserve: the nvm sourcing requirement, snake_case field names for ScheduleRecord, the architecture layering rules, and any in-progress file paths.
 
+## Superpowers plugin
+
+The [Superpowers framework](https://github.com/obra/superpowers) is installed globally. It provides `/superpowers:brainstorming`, `/superpowers:plan`, `/superpowers:tdd`, and other structured skills. See `.claude/rules/superpowers-integration.md` for how they complement `/implement-issue`.
+
 ## Workflow
 
 1. Create a GitHub Issue describing the feature/fix

@@ -796,3 +796,111 @@ describe('RUNNER_SETUP.md documents gstack', () => {
     expect(runnerSetup).toMatch(/gstack/i)
   })
 })
+
+describe('automated workflow has budget cap', () => {
+  const workflowContent = readFileSync(WORKFLOW_PATH, 'utf-8')
+
+  it('passes --max-budget-usd to Claude CLI', () => {
+    expect(workflowContent).toMatch(/max-budget-usd/)
+  })
+
+  it('has MAX_BUDGET_USD configured as env var or inline', () => {
+    expect(workflowContent).toMatch(/MAX_BUDGET_USD|max-budget-usd\s+\d/)
+  })
+})
+
+describe('automation rules file', () => {
+  const AUTOMATION_RULES_PATH = join(__dirname, '../../.claude/rules/automation.md')
+
+  it('automation.md exists in .claude/rules/', () => {
+    expect(existsSync(AUTOMATION_RULES_PATH)).toBe(true)
+  })
+
+  it('has valid YAML frontmatter with paths covering scripts and workflows', () => {
+    const content = readFileSync(AUTOMATION_RULES_PATH, 'utf-8')
+    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/)
+    expect(frontmatterMatch, 'must have YAML frontmatter').not.toBeNull()
+    const frontmatter = frontmatterMatch![1]!
+    expect(frontmatter).toContain('paths:')
+    expect(frontmatter).toMatch(/\.claude\/scripts/)
+    expect(frontmatter).toMatch(/\.github/)
+  })
+
+  it('documents the self-hosted runner security model', () => {
+    const content = readFileSync(AUTOMATION_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/self-hosted|dangerously-skip-permissions/i)
+  })
+
+  it('documents nvm requirement for all bash commands', () => {
+    const content = readFileSync(AUTOMATION_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/nvm/i)
+  })
+
+  it('documents budget cap requirement for automated runs', () => {
+    const content = readFileSync(AUTOMATION_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/max-budget-usd|budget.*cap/i)
+  })
+
+  it('documents GH_TOKEN unset requirement', () => {
+    const content = readFileSync(AUTOMATION_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/GH_TOKEN|unset.*GH_TOKEN/i)
+  })
+})
+
+describe('settings.json hooks are properly configured', () => {
+  const SETTINGS_PATH = join(__dirname, '../../.claude/settings.json')
+
+  it('settings.json exists', () => {
+    expect(existsSync(SETTINGS_PATH)).toBe(true)
+  })
+
+  it('has PostToolUse hook for Edit|Write running tsc', () => {
+    const content = JSON.parse(readFileSync(SETTINGS_PATH, 'utf-8'))
+    expect(content.hooks?.PostToolUse).toBeDefined()
+    const editHook = content.hooks.PostToolUse.find((h: { matcher: string }) => h.matcher === 'Edit|Write')
+    expect(editHook).toBeDefined()
+    expect(editHook.hooks[0].command).toMatch(/tsc --noEmit/)
+  })
+
+  it('has Notification hook configured', () => {
+    const content = JSON.parse(readFileSync(SETTINGS_PATH, 'utf-8'))
+    expect(content.hooks?.Notification).toBeDefined()
+    expect(content.hooks.Notification.length).toBeGreaterThan(0)
+  })
+})
+
+describe('pre-commit hook enforces quality', () => {
+  const PRECOMMIT_PATH = join(__dirname, '../../.git/hooks/pre-commit')
+
+  it('pre-commit hook exists', () => {
+    expect(existsSync(PRECOMMIT_PATH)).toBe(true)
+  })
+
+  it('runs tsc --noEmit', () => {
+    const content = readFileSync(PRECOMMIT_PATH, 'utf-8')
+    expect(content).toMatch(/tsc --noEmit/)
+  })
+
+  it('runs vitest', () => {
+    const content = readFileSync(PRECOMMIT_PATH, 'utf-8')
+    expect(content).toMatch(/vitest/)
+  })
+})
+
+describe('implement-issue skill audit covers automation and budget', () => {
+  const skillContent = readFileSync(SKILL_PATH, 'utf-8')
+
+  it('audit checklist mentions automation rules file', () => {
+    const step9Match = skillContent.match(/### 9\. Consolidate learnings([\s\S]*)$/)
+    expect(step9Match, 'step 9 must exist').not.toBeNull()
+    const step9Content = step9Match![1]!
+    expect(step9Content).toMatch(/automation\.md|automation rules/i)
+  })
+
+  it('audit checklist mentions budget cap for automated workflow', () => {
+    const step9Match = skillContent.match(/### 9\. Consolidate learnings([\s\S]*)$/)
+    expect(step9Match, 'step 9 must exist').not.toBeNull()
+    const step9Content = step9Match![1]!
+    expect(step9Content).toMatch(/max-budget-usd|budget.*cap/i)
+  })
+})

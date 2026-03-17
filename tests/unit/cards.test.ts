@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createCard, CardValidationError } from '../../src/domain/cards'
+import { createCard, updateCardFields, CardValidationError } from '../../src/domain/cards'
 
 const DECK_ID = 'test-deck-id'
 
@@ -59,5 +59,53 @@ describe('createCard', () => {
     expect(card.explanation).toBeUndefined()
     const card2 = createCard('Q', 'A', DECK_ID, '   ')
     expect(card2.explanation).toBeUndefined()
+  })
+})
+
+describe('updateCardFields', () => {
+  const original = createCard('Old front', 'Old back', DECK_ID, 'Old explanation')
+
+  it('updates front and back with trimmed values', () => {
+    const updated = updateCardFields(original, '  New front  ', '  New back  ')
+    expect(updated.front).toBe('New front')
+    expect(updated.back).toBe('New back')
+  })
+
+  it('preserves id, createdAt, and deckId', () => {
+    const updated = updateCardFields(original, 'New Q', 'New A')
+    expect(updated.id).toBe(original.id)
+    expect(updated.createdAt).toBe(original.createdAt)
+    expect(updated.deckId).toBe(original.deckId)
+  })
+
+  it('updates explanation when provided', () => {
+    const updated = updateCardFields(original, 'Q', 'A', 'New explanation')
+    expect(updated.explanation).toBe('New explanation')
+  })
+
+  it('removes explanation when empty or whitespace-only', () => {
+    const updated = updateCardFields(original, 'Q', 'A', '   ')
+    expect(updated.explanation).toBeUndefined()
+  })
+
+  it('removes explanation when not provided', () => {
+    const updated = updateCardFields(original, 'Q', 'A')
+    expect(updated.explanation).toBeUndefined()
+  })
+
+  it('throws CardValidationError for empty front', () => {
+    expect(() => updateCardFields(original, '', 'A')).toThrow(CardValidationError)
+    expect(() => updateCardFields(original, '   ', 'A')).toThrow(CardValidationError)
+  })
+
+  it('throws CardValidationError for empty back', () => {
+    expect(() => updateCardFields(original, 'Q', '')).toThrow(CardValidationError)
+    expect(() => updateCardFields(original, 'Q', '   ')).toThrow(CardValidationError)
+  })
+
+  it('returns a new object, does not mutate original', () => {
+    const updated = updateCardFields(original, 'New Q', 'New A')
+    expect(updated).not.toBe(original)
+    expect(original.front).toBe('Old front')
   })
 })

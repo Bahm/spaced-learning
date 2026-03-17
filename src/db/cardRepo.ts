@@ -9,6 +9,8 @@ export const getAllCards = (): Promise<Card[]> =>
 export const getCardsByDeck = (deckId: string): Promise<Card[]> =>
   db.cards.where('deckId').equals(deckId).sortBy('createdAt')
 
+export const updateCard = (card: Card): Promise<string> => db.cards.put(card)
+
 export const deleteCard = async (id: string): Promise<void> => {
   await db.transaction('rw', db.cards, db.schedules, async () => {
     await db.cards.delete(id)

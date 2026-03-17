@@ -66,7 +66,14 @@ parse_reset_time() {
     return 0
   fi
 
-  # Try "resets <time> (<timezone>)" format (e.g. "resets 11pm (Asia/Saigon)")
+  # Try "resets <month> <day>, <time> (<timezone>)" format (e.g. "resets Mar 17, 7am (Asia/Saigon)")
+  reset_str=$(echo "$output" | grep -oiP '(?:reset(?:s)?)\s+\K[A-Z][a-z]{2}\s+\d{1,2},?\s*\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*(?:\([^)]+\))?' | head -1)
+  if [ -n "$reset_str" ]; then
+    echo "$reset_str"
+    return 0
+  fi
+
+  # Try "resets <time> (<timezone>)" format without date (e.g. "resets 11pm (Asia/Saigon)")
   reset_str=$(echo "$output" | grep -oiP '(?:reset(?:s)?)\s+\K\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*(?:\([^)]+\))?' | head -1)
   if [ -n "$reset_str" ]; then
     echo "$reset_str"
@@ -87,16 +94,34 @@ calculate_wait_secs() {
   local reset_str="$1"
   local reset_epoch now_epoch wait_secs
 
-  # Handle "11pm (Asia/Saigon)" format — extract timezone from parens
+  # Handle "(Asia/Saigon)" timezone suffix — extract timezone from parens
   local tz_override=""
   local paren_re='[(]([^)]+)[)]'
   if [[ "$reset_str" =~ $paren_re ]]; then
     tz_override="${BASH_REMATCH[1]}"
     # Remove the parenthesized timezone from the time string
     reset_str=$(echo "$reset_str" | sed 's/\s*([^)]*)//g' | xargs)
-    # Parse the time in the specified timezone
-    reset_epoch=$(TZ="$tz_override" date -d "today $reset_str" +%s 2>/dev/null) || \
-      reset_epoch=$(TZ="$tz_override" date -d "tomorrow $reset_str" +%s 2>/dev/null) || return 1
+  fi
+
+  # Strip commas — GNU date doesn't accept "Mar 17, 7am" but does accept "Mar 17 7am"
+  reset_str=$(echo "$reset_str" | tr -d ',')
+
+  # Check if the string contains a month name (multi-day format like "Mar 17, 7am")
+  local has_date=false
+  local month_re='^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+'
+  if [[ "$reset_str" =~ $month_re ]]; then
+    has_date=true
+  fi
+
+  if [ -n "$tz_override" ]; then
+    if [ "$has_date" = true ]; then
+      # Date+time format: "Mar 17, 7am" — pass directly to date -d
+      reset_epoch=$(TZ="$tz_override" date -d "$reset_str" +%s 2>/dev/null) || return 1
+    else
+      # Time-only format: "11pm" — try today first, then tomorrow
+      reset_epoch=$(TZ="$tz_override" date -d "today $reset_str" +%s 2>/dev/null) || \
+        reset_epoch=$(TZ="$tz_override" date -d "tomorrow $reset_str" +%s 2>/dev/null) || return 1
+    fi
   else
     reset_epoch=$(date -d "$reset_str" +%s 2>/dev/null) || return 1
   fi
@@ -104,9 +129,12 @@ calculate_wait_secs() {
   now_epoch=$(date +%s)
 
   if [ "$reset_epoch" -le "$now_epoch" ]; then
-    # Reset time is in the past for today — try tomorrow
-    if [ -n "$tz_override" ]; then
+    if [ -n "$tz_override" ] && [ "$has_date" = false ]; then
+      # Time-only and in the past for today — try tomorrow
       reset_epoch=$(TZ="$tz_override" date -d "tomorrow $reset_str" +%s 2>/dev/null) || return 1
+    elif [ -n "$tz_override" ] && [ "$has_date" = true ]; then
+      # Date+time in the past — try next year (unlikely but handle gracefully)
+      reset_epoch=$(TZ="$tz_override" date -d "$reset_str next year" +%s 2>/dev/null) || return 1
     else
       return 1
     fi

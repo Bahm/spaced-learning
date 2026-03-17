@@ -111,6 +111,89 @@ describe('quota-retry wrapper script', () => {
     // The script must have a pattern that can extract time from "resets 11pm (Asia/Saigon)"
     expect(content).toMatch(/resets?\s+\d|resets?\s+at|resets?\s+\S/i)
   })
+
+  it('parse_reset_time handles "resets <month> <day>, <time> (<timezone>)" format', () => {
+    const content = readFileSync(WRAPPER_SCRIPT_PATH, 'utf-8')
+    // Must have a grep pattern that matches "resets Mar 17, 7am (Asia/Saigon)" — date + time + tz
+    // This is the actual format observed in the failed GitHub Action run on 2026-03-14
+    expect(content).toMatch(/[A-Z][a-z]{2}\s+\d|month.*day|date.*time.*timezone/i)
+  })
+})
+
+describe('quota-retry-wrapper bash function integration', () => {
+  const execSync = require('child_process').execSync
+
+  // Helper: source the script functions and call one, returning stdout
+  const callBashFn = (fnCall: string): string => {
+    // Extract only function definitions using sed (between function_name() and closing })
+    // Then eval them and run the requested function call
+    const script = `
+eval "$(awk '/^[a-z_]+\\(\\)/{found=1} found{print} /^\\}$/ && found{found=0}' '${WRAPPER_SCRIPT_PATH}')"
+${fnCall}
+`
+    try {
+      return execSync(script, { shell: '/bin/bash', encoding: 'utf-8', timeout: 5000 }).trim()
+    } catch (e: unknown) {
+      return (e as { status?: number }).status?.toString() ?? 'error'
+    }
+  }
+
+  it('parse_reset_time extracts "Mar 17, 7am (Asia/Saigon)" from quota message', () => {
+    const output = callBashFn(
+      `parse_reset_time "You've hit your limit · resets Mar 17, 7am (Asia/Saigon)"`
+    )
+    // Should extract something parseable containing Mar 17 and the timezone
+    expect(output).toContain('Mar')
+    expect(output).toContain('17')
+    expect(output).toContain('Asia/Saigon')
+  })
+
+  it('parse_reset_time extracts "Mar 17, 7:00am (Asia/Saigon)" with minutes', () => {
+    const output = callBashFn(
+      `parse_reset_time "You've hit your limit · resets Mar 17, 7:00am (Asia/Saigon)"`
+    )
+    expect(output).toContain('Mar')
+    expect(output).toContain('17')
+  })
+
+  it('parse_reset_time still handles "11pm (Asia/Saigon)" without date', () => {
+    const output = callBashFn(
+      `parse_reset_time "You've hit your limit · resets 11pm (Asia/Saigon)"`
+    )
+    expect(output).toContain('11pm')
+    expect(output).toContain('Asia/Saigon')
+  })
+
+  it('calculate_wait_secs returns positive seconds for a future date+time+tz', () => {
+    // Use a date far in the future to ensure it's always ahead
+    const output = callBashFn(
+      `calculate_wait_secs "Dec 31, 11pm (UTC)"`
+    )
+    const secs = parseInt(output, 10)
+    expect(secs).toBeGreaterThan(60) // at least the 60s buffer
+  })
+
+  it('calculate_wait_secs handles multi-day waits (not just today/tomorrow)', () => {
+    // Create a date 3 days from now
+    const future = new Date()
+    future.setDate(future.getDate() + 3)
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const monthStr = monthNames[future.getMonth()]
+    const dayStr = future.getDate().toString()
+    const resetStr = `${monthStr} ${dayStr}, 7am (UTC)`
+
+    const output = callBashFn(`calculate_wait_secs "${resetStr}"`)
+    const secs = parseInt(output, 10)
+    // Should be at least 2 days worth of seconds (172800) + 60s buffer
+    expect(secs).toBeGreaterThan(172800)
+  })
+
+  it('is_quota_error detects "You\'ve hit your limit · resets Mar 17, 7am" message', () => {
+    const output = callBashFn(
+      `is_quota_error "You've hit your limit · resets Mar 17, 7am (Asia/Saigon)" && echo "detected" || echo "missed"`
+    )
+    expect(output).toBe('detected')
+  })
 })
 
 describe('implement-issue skill prevents duplicate PRs', () => {

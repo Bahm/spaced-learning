@@ -24,6 +24,13 @@ describe('SENTENCES_SEED_CARDS', () => {
     expect(vietnameseChars.test(allFronts)).toBe(true)
   })
 
+  it('every entry has a non-empty explanation', () => {
+    for (const card of SENTENCES_SEED_CARDS) {
+      expect(card.explanation, `Missing explanation for "${card.front}"`).toBeDefined()
+      expect(card.explanation!.trim()).not.toBe('')
+    }
+  })
+
   it('backs are in English', () => {
     // Backs should be English translations — verify they use mostly ASCII
     for (const card of SENTENCES_SEED_CARDS) {

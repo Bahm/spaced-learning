@@ -18,6 +18,13 @@ describe('YOGA_SEED_CARDS', () => {
     expect(new Set(fronts).size).toBe(YOGA_SEED_CARDS.length)
   })
 
+  it('every entry has a non-empty explanation', () => {
+    for (const card of YOGA_SEED_CARDS) {
+      expect(card.explanation, `Missing explanation for "${card.front}"`).toBeDefined()
+      expect(card.explanation!.trim()).not.toBe('')
+    }
+  })
+
   it('fronts are in Vietnamese (not English)', () => {
     // Yoga vocabulary should have Vietnamese fronts — check that common Vietnamese
     // diacritical characters appear across the dataset

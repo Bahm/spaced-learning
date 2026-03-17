@@ -20,6 +20,7 @@ export interface Card {
   readonly id: string
   readonly front: string
   readonly back: string
+  readonly explanation?: string
   readonly createdAt: number
   readonly deckId: string
 }

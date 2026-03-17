@@ -11,6 +11,7 @@ interface Props {
 export const AddCardForm = ({ deckId }: Props) => {
   const [front, setFront] = useState('')
   const [back, setBack] = useState('')
+  const [explanation, setExplanation] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -25,11 +26,12 @@ export const AddCardForm = ({ deckId }: Props) => {
     e.preventDefault()
     setError('')
     try {
-      const card = createCard(front, back, deckId)
+      const card = createCard(front, back, deckId, explanation || undefined)
       await addCard(card)
       await upsertSchedule(card.id, createNewSchedule())
       setFront('')
       setBack('')
+      setExplanation('')
       setSuccess(true)
       if (successTimer.current) clearTimeout(successTimer.current)
       successTimer.current = setTimeout(() => setSuccess(false), 3000)
@@ -60,6 +62,16 @@ export const AddCardForm = ({ deckId }: Props) => {
           onChange={(e) => setBack(e.target.value)}
           placeholder="Answer"
           rows={3}
+          style={{ display: 'block', width: '100%', marginTop: '4px' }}
+        />
+      </label>
+      <label>
+        Explanation
+        <textarea
+          value={explanation}
+          onChange={(e) => setExplanation(e.target.value)}
+          placeholder="Optional — e.g. example usage in a sentence"
+          rows={2}
           style={{ display: 'block', width: '100%', marginTop: '4px' }}
         />
       </label>

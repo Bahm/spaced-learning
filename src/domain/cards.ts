@@ -7,17 +7,19 @@ export class CardValidationError extends Error {
   }
 }
 
-export const createCard = (front: string, back: string, deckId: string): Card => {
+export const createCard = (front: string, back: string, deckId: string, explanation?: string): Card => {
   if (front.trim().length === 0) {
     throw new CardValidationError('Front side cannot be empty')
   }
   if (back.trim().length === 0) {
     throw new CardValidationError('Back side cannot be empty')
   }
+  const trimmed = explanation?.trim()
   return {
     id: crypto.randomUUID(),
     front: front.trim(),
     back: back.trim(),
+    ...(trimmed ? { explanation: trimmed } : {}),
     createdAt: Date.now(),
     deckId,
   }

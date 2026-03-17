@@ -644,6 +644,76 @@ parse_and_update_config "$MOCK_RESPONSE" "${configFile}"
   })
 })
 
+describe('superpowers integration', () => {
+  const SETUP_SCRIPT_PATH = join(__dirname, '../../.claude/scripts/setup-superpowers.sh')
+  const SUPERPOWERS_RULES_PATH = join(__dirname, '../../.claude/rules/superpowers-integration.md')
+
+  it('setup-superpowers.sh exists', () => {
+    expect(existsSync(SETUP_SCRIPT_PATH)).toBe(true)
+  })
+
+  it('setup script is executable (has shebang)', () => {
+    const content = readFileSync(SETUP_SCRIPT_PATH, 'utf-8')
+    expect(content.startsWith('#!/')).toBe(true)
+  })
+
+  it('setup script has executable permissions', () => {
+    const stat = statSync(SETUP_SCRIPT_PATH)
+    const isExecutable = (stat.mode & 0o111) !== 0
+    expect(isExecutable).toBe(true)
+  })
+
+  it('setup script installs superpowers from marketplace', () => {
+    const content = readFileSync(SETUP_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/superpowers/)
+    expect(content).toMatch(/marketplace/)
+  })
+
+  it('setup script is idempotent (checks if already installed)', () => {
+    const content = readFileSync(SETUP_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/already|installed|skip|check/i)
+  })
+
+  it('superpowers integration rules file exists', () => {
+    expect(existsSync(SUPERPOWERS_RULES_PATH)).toBe(true)
+  })
+
+  it('superpowers rules have valid YAML frontmatter', () => {
+    const content = readFileSync(SUPERPOWERS_RULES_PATH, 'utf-8')
+    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/)
+    expect(frontmatterMatch, 'must have YAML frontmatter').not.toBeNull()
+    const frontmatter = frontmatterMatch![1]!
+    expect(frontmatter).toContain('paths:')
+  })
+
+  it('superpowers rules document integration with existing automation', () => {
+    const content = readFileSync(SUPERPOWERS_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/implement-issue/i)
+    expect(content).toMatch(/automation|automated/i)
+  })
+
+  it('superpowers rules address retrospection/continuous improvement', () => {
+    const content = readFileSync(SUPERPOWERS_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/retrospection|continuous improvement/i)
+  })
+})
+
+describe('implement-from-issue workflow includes superpowers setup', () => {
+  const workflowContent = readFileSync(WORKFLOW_PATH, 'utf-8')
+
+  it('workflow ensures superpowers plugin is available before running Claude', () => {
+    expect(workflowContent).toMatch(/superpowers|setup-superpowers/i)
+  })
+})
+
+describe('RUNNER_SETUP.md documents superpowers', () => {
+  const runnerSetup = readFileSync(join(__dirname, '../../.github/RUNNER_SETUP.md'), 'utf-8')
+
+  it('documents superpowers plugin installation', () => {
+    expect(runnerSetup).toMatch(/superpowers/i)
+  })
+})
+
 describe('pre-reset-retrospection.sh calls fetch-weekly-reset.sh', () => {
   it('calls fetch-weekly-reset.sh to auto-update config before time window check', () => {
     const content = readFileSync(RETROSPECTION_SCRIPT_PATH, 'utf-8')

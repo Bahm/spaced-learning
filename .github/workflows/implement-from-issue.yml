@@ -112,11 +112,12 @@ jobs:
           .claude/scripts/quota-retry-wrapper.sh \
             "${{ github.event.issue.number }}" \
             "${{ github.repository }}" \
-            --dangerously-skip-permissions -p \
+            --dangerously-skip-permissions --max-budget-usd "$MAX_BUDGET_USD" -p \
             "/implement-issue #${{ github.event.issue.number }}. You MUST complete the full workflow: write failing tests, implement, verify, commit, and open a PR. Do not stop at planning.${CONTEXT_PROMPT}"
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MAX_RETRIES: "2"
+          MAX_BUDGET_USD: "15"
 
       - name: Verify PR was created
         working-directory: /home/bahm/Projects/spaced-learning

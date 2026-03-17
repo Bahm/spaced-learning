@@ -1150,6 +1150,31 @@ describe('hooks must not mask loading state', () => {
   })
 })
 
+describe('interfaces enforce readonly fields', () => {
+  const checkReadonlyFields = (filePath: string, fileName: string) => {
+    const content = readFileSync(filePath, 'utf-8')
+    const interfaceBlocks = content.match(/(?:export\s+)?interface\s+\w+\s*\{[^}]+\}/g) ?? []
+    for (const block of interfaceBlocks) {
+      const name = block.match(/interface\s+(\w+)/)?.[1] ?? 'unknown'
+      const fieldLines = block.split('\n').filter(line => /^\s+\w+[?]?:/.test(line))
+      for (const field of fieldLines) {
+        expect(field.trim(), `${fileName}:${name} field missing readonly: ${field.trim()}`).toMatch(/^readonly\s/)
+      }
+    }
+    return interfaceBlocks.length
+  }
+
+  it('all interface fields in domain/types.ts use readonly', () => {
+    const count = checkReadonlyFields(join(__dirname, '../../src/domain/types.ts'), 'types.ts')
+    expect(count).toBeGreaterThan(0)
+  })
+
+  it('ScheduleRecord in db/db.ts uses readonly fields', () => {
+    const count = checkReadonlyFields(join(__dirname, '../../src/db/db.ts'), 'db.ts')
+    expect(count).toBeGreaterThan(0)
+  })
+})
+
 describe('skill documentation consistency', () => {
   it('implement-issue co-author matches current model (Opus 4.6)', () => {
     const skillContent = readFileSync(SKILL_PATH, 'utf-8')

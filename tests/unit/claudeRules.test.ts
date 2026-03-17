@@ -9,6 +9,7 @@ const WORKFLOW_PATH = join(__dirname, '../../.github/workflows/implement-from-is
 const RETROSPECTION_SCRIPT_PATH = join(__dirname, '../../.claude/scripts/pre-reset-retrospection.sh')
 const RETROSPECTION_CONFIG_PATH = join(__dirname, '../../.claude/scripts/retrospection-config.json')
 const UPDATE_RESET_CONFIG_PATH = join(__dirname, '../../.claude/scripts/update-reset-config.sh')
+const FETCH_WEEKLY_RESET_PATH = join(__dirname, '../../.claude/scripts/fetch-weekly-reset.sh')
 
 describe('.claude/rules/ structure', () => {
   it('rules directory exists', () => {
@@ -518,5 +519,134 @@ describe('package.json has retrospection npm scripts', () => {
 
   it('has retrospection:force script', () => {
     expect(pkg.scripts['retrospection:force']).toMatch(/force/)
+  })
+})
+
+describe('fetch-weekly-reset.sh usage API script', () => {
+  it('fetch-weekly-reset.sh exists', () => {
+    expect(existsSync(FETCH_WEEKLY_RESET_PATH)).toBe(true)
+  })
+
+  it('is executable (has shebang)', () => {
+    const content = readFileSync(FETCH_WEEKLY_RESET_PATH, 'utf-8')
+    expect(content.startsWith('#!/')).toBe(true)
+  })
+
+  it('has executable permissions', () => {
+    const stat = statSync(FETCH_WEEKLY_RESET_PATH)
+    const isExecutable = (stat.mode & 0o111) !== 0
+    expect(isExecutable).toBe(true)
+  })
+
+  it('reads OAuth token from Claude credentials file', () => {
+    const content = readFileSync(FETCH_WEEKLY_RESET_PATH, 'utf-8')
+    expect(content).toMatch(/credentials\.json|claudeAiOauth|accessToken/i)
+  })
+
+  it('calls the Anthropic OAuth usage API endpoint', () => {
+    const content = readFileSync(FETCH_WEEKLY_RESET_PATH, 'utf-8')
+    expect(content).toMatch(/api\.anthropic\.com.*oauth.*usage|oauth\/usage/)
+  })
+
+  it('extracts seven_day reset time from API response', () => {
+    const content = readFileSync(FETCH_WEEKLY_RESET_PATH, 'utf-8')
+    expect(content).toMatch(/seven_day|resets_at/)
+  })
+
+  it('updates retrospection-config.json with derived resetDay and resetHourUTC', () => {
+    const content = readFileSync(FETCH_WEEKLY_RESET_PATH, 'utf-8')
+    expect(content).toMatch(/resetDay/)
+    expect(content).toMatch(/resetHourUTC/)
+    expect(content).toMatch(/retrospection-config\.json/)
+  })
+
+  it('preserves other config fields when updating', () => {
+    const content = readFileSync(FETCH_WEEKLY_RESET_PATH, 'utf-8')
+    // Should use jq to update only specific fields
+    expect(content).toMatch(/jq/)
+  })
+
+  it('handles API errors gracefully without crashing', () => {
+    const content = readFileSync(FETCH_WEEKLY_RESET_PATH, 'utf-8')
+    // Should check HTTP status or response validity
+    expect(content).toMatch(/error|fail|invalid|null/i)
+  })
+})
+
+describe('fetch-weekly-reset.sh bash integration', () => {
+  const execSync = require('child_process').execSync
+  const { mkdtempSync, writeFileSync, unlinkSync, rmdirSync } = require('fs')
+  const { tmpdir } = require('os')
+
+  it('correctly parses ISO 8601 resets_at and updates config', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'fetch-reset-test-'))
+    const configFile = join(tmpDir, 'retrospection-config.json')
+
+    writeFileSync(configFile, JSON.stringify({
+      resetDay: 'Friday',
+      resetHourUTC: 12,
+      windowHours: 2,
+      maxBudgetUsd: 5,
+      tasks: ['test task']
+    }))
+
+    // Call the parse_and_update function directly with a mock API response
+    // The script should have a function that takes JSON and config path
+    try {
+      const script = `
+source "${FETCH_WEEKLY_RESET_PATH}" --source-only 2>/dev/null || true
+# Extract functions using awk
+eval "$(awk '/^[a-z_]+\\(\\)/{found=1} found{print} /^\\}$/ && found{found=0}' '${FETCH_WEEKLY_RESET_PATH}')"
+MOCK_RESPONSE='{"seven_day":{"utilization":5.0,"resets_at":"2026-03-24T00:00:01.220149+00:00"}}'
+parse_and_update_config "$MOCK_RESPONSE" "${configFile}"
+`
+      execSync(script, { shell: '/bin/bash', encoding: 'utf-8', timeout: 5000 })
+      const updated = JSON.parse(readFileSync(configFile, 'utf-8'))
+      expect(updated.resetDay).toBe('Tuesday')
+      expect(updated.resetHourUTC).toBe(0)
+      // Preserved fields
+      expect(updated.windowHours).toBe(2)
+      expect(updated.maxBudgetUsd).toBe(5)
+      expect(updated.tasks).toEqual(['test task'])
+    } finally {
+      unlinkSync(configFile)
+      rmdirSync(tmpDir)
+    }
+  })
+
+  it('does not update config when API response has null seven_day', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'fetch-reset-test-'))
+    const configFile = join(tmpDir, 'retrospection-config.json')
+
+    const originalConfig = {
+      resetDay: 'Friday',
+      resetHourUTC: 12,
+      windowHours: 2,
+      maxBudgetUsd: 5,
+      tasks: ['test task']
+    }
+    writeFileSync(configFile, JSON.stringify(originalConfig))
+
+    try {
+      const script = `
+eval "$(awk '/^[a-z_]+\\(\\)/{found=1} found{print} /^\\}$/ && found{found=0}' '${FETCH_WEEKLY_RESET_PATH}')"
+MOCK_RESPONSE='{"seven_day":null}'
+parse_and_update_config "$MOCK_RESPONSE" "${configFile}"
+`
+      execSync(script, { shell: '/bin/bash', encoding: 'utf-8', timeout: 5000 })
+      const updated = JSON.parse(readFileSync(configFile, 'utf-8'))
+      expect(updated.resetDay).toBe('Friday')
+      expect(updated.resetHourUTC).toBe(12)
+    } finally {
+      unlinkSync(configFile)
+      rmdirSync(tmpDir)
+    }
+  })
+})
+
+describe('pre-reset-retrospection.sh calls fetch-weekly-reset.sh', () => {
+  it('calls fetch-weekly-reset.sh to auto-update config before time window check', () => {
+    const content = readFileSync(RETROSPECTION_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/fetch-weekly-reset/)
   })
 })

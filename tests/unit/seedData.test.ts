@@ -17,4 +17,11 @@ describe('VIETNAMESE_SEED_CARDS', () => {
     const fronts = VIETNAMESE_SEED_CARDS.map((c) => c.front)
     expect(new Set(fronts).size).toBe(VIETNAMESE_SEED_CARDS.length)
   })
+
+  it('every entry has a non-empty explanation', () => {
+    for (const card of VIETNAMESE_SEED_CARDS) {
+      expect(card.explanation, `Missing explanation for "${card.front}"`).toBeDefined()
+      expect(card.explanation!.trim()).not.toBe('')
+    }
+  })
 })

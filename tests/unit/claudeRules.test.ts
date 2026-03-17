@@ -361,7 +361,7 @@ describe('retrospection-config.json', () => {
     expect(typeof config.resetDay).toBe('string')
     expect(config.resetHourUTC).toBeGreaterThanOrEqual(0)
     expect(config.resetHourUTC).toBeLessThanOrEqual(23)
-    expect(config.windowHours).toBeGreaterThan(0)
+    expect(config.windowHours).toBe(6)
     expect(config.maxBudgetUsd).toBeGreaterThan(0)
     expect(Array.isArray(config.tasks)).toBe(true)
     expect(config.tasks.length).toBeGreaterThan(0)

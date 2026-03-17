@@ -1,7 +1,7 @@
 {
   "resetDay": "Tuesday",
   "resetHourUTC": 0,
-  "windowHours": 2,
+  "windowHours": 6,
   "maxBudgetUsd": 5,
   "tasks": [
     "Fix any failing unit tests or type errors",

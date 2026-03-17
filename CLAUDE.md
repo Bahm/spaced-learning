@@ -60,7 +60,7 @@ Unit tests cover `src/domain/` only. E2E tests cover full user flows in Chromium
 
 See `.claude/rules/e2e-testing.md` for Playwright-specific patterns and pitfalls.
 
-**CI-safe tests only**: never test `.git/hooks/` (not in CI checkout) or file permissions via `statSync` (differ in CI). Only test git-tracked files.
+**CI-safe tests only**: never test `.git/hooks/` (not in CI checkout). File permissions via `statSync().mode` are safe for git-tracked scripts (git preserves the executable bit) but not for generated/local-only files. Only test git-tracked files.
 
 ## Compaction guidance
 

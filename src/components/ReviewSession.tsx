@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useReview } from '../hooks/useReview'
 import { useReviewedToday } from '../hooks/useReviewedToday'
 import type { Rating } from '../domain/types'
@@ -17,6 +17,13 @@ interface Props {
 export const ReviewSession = ({ deckId }: Props = {}) => {
   const { currentCard, remaining, isLoading, isRevealed, reveal, rate } = useReview(deckId)
   const reviewedToday = useReviewedToday()
+  const [showExplanation, setShowExplanation] = useState(false)
+
+  // Reset explanation visibility when card changes or answer is hidden
+  const cardId = currentCard?.id
+  useEffect(() => {
+    setShowExplanation(false)
+  }, [cardId, isRevealed])
 
   // Use refs so the stable event listener always has the latest values
   const isRevealedRef = useRef(isRevealed)
@@ -101,6 +108,33 @@ export const ReviewSession = ({ deckId }: Props = {}) => {
           >
             <p>{currentCard.back}</p>
           </div>
+          {currentCard.explanation && !showExplanation && (
+            <button
+              onClick={() => setShowExplanation(true)}
+              style={{
+                padding: '8px',
+                background: 'transparent',
+                border: '1px solid #555',
+                borderRadius: '4px',
+                color: '#aaa',
+                cursor: 'pointer',
+              }}
+            >
+              Show Explanation
+            </button>
+          )}
+          {currentCard.explanation && showExplanation && (
+            <div
+              style={{
+                background: '#1a1a2e',
+                borderRadius: '8px',
+                padding: '16px',
+                borderLeft: '3px solid #4a4a8a',
+              }}
+            >
+              <p style={{ color: '#ccc', margin: 0 }}>{currentCard.explanation}</p>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: '8px' }}>
             {RATINGS.map(({ label, value, color }) => (
               <button

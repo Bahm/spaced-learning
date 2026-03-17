@@ -38,4 +38,26 @@ describe('createCard', () => {
     expect(() => createCard('Q', '', DECK_ID)).toThrow(CardValidationError)
     expect(() => createCard('Q', '   ', DECK_ID)).toThrow(CardValidationError)
   })
+
+  it('creates a card with an optional explanation', () => {
+    const card = createCard('Q', 'A', DECK_ID, 'Example usage in a sentence')
+    expect(card.explanation).toBe('Example usage in a sentence')
+  })
+
+  it('trims explanation whitespace', () => {
+    const card = createCard('Q', 'A', DECK_ID, '  spaced  ')
+    expect(card.explanation).toBe('spaced')
+  })
+
+  it('omits explanation when not provided', () => {
+    const card = createCard('Q', 'A', DECK_ID)
+    expect(card.explanation).toBeUndefined()
+  })
+
+  it('omits explanation when empty or whitespace-only', () => {
+    const card = createCard('Q', 'A', DECK_ID, '')
+    expect(card.explanation).toBeUndefined()
+    const card2 = createCard('Q', 'A', DECK_ID, '   ')
+    expect(card2.explanation).toBeUndefined()
+  })
 })

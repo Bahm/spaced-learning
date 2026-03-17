@@ -522,6 +522,69 @@ test.describe('Flashcard app', () => {
     await expect(page.getByText('All done!')).toBeVisible()
   })
 
+  // ── Card explanations ──────────────────────────────────────────────────────
+
+  test('add a card with explanation and see it in card list', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Explain Test')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+
+    await page.locator('li').filter({ hasText: 'Explain Test' }).getByRole('button', { name: 'Cards' }).click()
+    await page.getByLabel('Front').fill('chào buổi sáng')
+    await page.getByLabel('Back').fill('good morning')
+    await page.getByLabel('Explanation').fill('Used as a morning greeting')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+
+    await expect(page.getByText('chào buổi sáng')).toBeVisible()
+    await expect(page.getByText('→ good morning')).toBeVisible()
+  })
+
+  test('explanation is hidden during review until user clicks Show Explanation', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Hint Test')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+
+    await page.locator('li').filter({ hasText: 'Hint Test' }).getByRole('button', { name: 'Cards' }).click()
+    await page.getByLabel('Front').fill('cảm ơn')
+    await page.getByLabel('Back').fill('thank you')
+    await page.getByLabel('Explanation').fill('Cảm ơn bạn rất nhiều — Thank you very much')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+
+    await page.getByRole('button', { name: '← Decks' }).click()
+    await page.locator('li').filter({ hasText: 'Hint Test' }).getByRole('button', { name: 'Review' }).click()
+
+    // Before reveal — no explanation button
+    await expect(page.getByRole('button', { name: 'Show Explanation' })).not.toBeVisible()
+
+    // Reveal answer
+    await page.getByRole('button', { name: 'Show Answer' }).click()
+
+    // Explanation should be hidden but button should be visible
+    await expect(page.getByRole('button', { name: 'Show Explanation' })).toBeVisible()
+    await expect(page.getByText('Cảm ơn bạn rất nhiều')).not.toBeVisible()
+
+    // Click to show explanation
+    await page.getByRole('button', { name: 'Show Explanation' }).click()
+    await expect(page.getByText('Cảm ơn bạn rất nhiều')).toBeVisible()
+  })
+
+  test('no Show Explanation button when card has no explanation', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('No Hint')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+
+    await page.locator('li').filter({ hasText: 'No Hint' }).getByRole('button', { name: 'Cards' }).click()
+    await page.getByLabel('Front').fill('plain card')
+    await page.getByLabel('Back').fill('answer')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+
+    await page.getByRole('button', { name: '← Decks' }).click()
+    await page.locator('li').filter({ hasText: 'No Hint' }).getByRole('button', { name: 'Review' }).click()
+
+    await page.getByRole('button', { name: 'Show Answer' }).click()
+    await expect(page.getByRole('button', { name: 'Show Explanation' })).not.toBeVisible()
+  })
+
   test('archiving all decks shows "All done" on Review tab', async ({ page }) => {
     // Create a deck with a card
     await page.getByRole('button', { name: 'Decks' }).click()

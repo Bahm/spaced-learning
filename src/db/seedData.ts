@@ -1,26 +1,27 @@
 export interface SeedCard {
   readonly front: string
   readonly back: string
+  readonly explanation?: string
 }
 
 // 1000 most common words in Vietnamese (Vietnamese front, English back)
 export const VIETNAMESE_SEED_CARDS: SeedCard[] = [
   // Pronouns & forms of address
-  { front: 'tôi', back: 'I, me (first person)' },
-  { front: 'bạn', back: 'you (friend/peer); friend' },
-  { front: 'anh', back: 'older brother; he/you (older male)' },
-  { front: 'chị', back: 'older sister; she/you (older female)' },
-  { front: 'em', back: 'younger sibling; I (younger speaker)' },
-  { front: 'ông', back: 'grandfather; Mr.; he (elderly/respected male)' },
-  { front: 'bà', back: 'grandmother; Mrs.; she (elderly/respected female)' },
-  { front: 'cô', back: 'aunt; Miss; she (young woman)' },
-  { front: 'chú', back: 'uncle; he (middle-aged man)' },
-  { front: 'họ', back: 'they, them' },
-  { front: 'chúng tôi', back: 'we, us (exclusive — not including listener)' },
-  { front: 'chúng ta', back: 'we, us (inclusive — including listener)' },
-  { front: 'mình', back: 'myself; we (informal inclusive)' },
-  { front: 'nó', back: 'it; he/she (informal)' },
-  { front: 'người ta', back: 'people; one; they (impersonal)' },
+  { front: 'tôi', back: 'I, me (first person)', explanation: 'Neutral first-person pronoun. E.g. "Tôi là sinh viên." (I am a student.)' },
+  { front: 'bạn', back: 'you (friend/peer); friend', explanation: 'Use with people your age. E.g. "Bạn khỏe không?" (How are you?)' },
+  { front: 'anh', back: 'older brother; he/you (older male)', explanation: 'Use for males slightly older than you. E.g. "Anh ơi, cho tôi hỏi." (Excuse me, sir.)' },
+  { front: 'chị', back: 'older sister; she/you (older female)', explanation: 'Use for females slightly older than you. E.g. "Chị tên gì?" (What is your name, miss?)' },
+  { front: 'em', back: 'younger sibling; I (younger speaker)', explanation: 'Used by/for someone younger. E.g. "Em chào anh." (Hello, older brother — said by a younger person.)' },
+  { front: 'ông', back: 'grandfather; Mr.; he (elderly/respected male)', explanation: 'Respectful address for older men. E.g. "Ông ấy là bác sĩ." (He is a doctor.)' },
+  { front: 'bà', back: 'grandmother; Mrs.; she (elderly/respected female)', explanation: 'Respectful address for older women. E.g. "Bà ấy rất tốt." (She is very kind.)' },
+  { front: 'cô', back: 'aunt; Miss; she (young woman)', explanation: 'Also used for female teachers. E.g. "Cô giáo dạy tiếng Việt." (The teacher teaches Vietnamese.)' },
+  { front: 'chú', back: 'uncle; he (middle-aged man)', explanation: 'For men around your parents\' age. E.g. "Chú ấy là hàng xóm." (He is a neighbor.)' },
+  { front: 'họ', back: 'they, them', explanation: 'Third-person plural. E.g. "Họ đến từ Hà Nội." (They come from Hanoi.)' },
+  { front: 'chúng tôi', back: 'we, us (exclusive — not including listener)', explanation: '"We" that excludes the person you\'re talking to. E.g. "Chúng tôi đi trước." (We\'ll go ahead.)' },
+  { front: 'chúng ta', back: 'we, us (inclusive — including listener)', explanation: '"We" that includes everyone. E.g. "Chúng ta cùng đi!" (Let\'s all go together!)' },
+  { front: 'mình', back: 'myself; we (informal inclusive)', explanation: 'Casual "we" among close friends. E.g. "Mình đi ăn nhé?" (Shall we go eat?)' },
+  { front: 'nó', back: 'it; he/she (informal)', explanation: 'Informal, sometimes impolite for people. E.g. "Nó đang ngủ." (He/she is sleeping.)' },
+  { front: 'người ta', back: 'people; one; they (impersonal)', explanation: 'Impersonal subject. E.g. "Người ta nói tiếng Việt khó." (People say Vietnamese is hard.)' },
 
   // Affirmatives, negatives, basic particles
   { front: 'vâng', back: 'yes (respectful, Northern Vietnamese)' },

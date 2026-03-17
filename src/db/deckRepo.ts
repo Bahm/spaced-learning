@@ -55,8 +55,8 @@ export const installPublicDeck = async (catalogId: string, catalogName: string):
         status: 'active',
       }
       await db.decks.put(deck)
-      const cards = seedCards.map(({ front, back }) =>
-        createCard(front, back, deck.id),
+      const cards = seedCards.map(({ front, back, explanation }) =>
+        createCard(front, back, deck.id, explanation),
       )
       await db.cards.bulkAdd(cards)
     }

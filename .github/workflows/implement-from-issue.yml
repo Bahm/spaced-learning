@@ -112,7 +112,7 @@ jobs:
           .claude/scripts/quota-retry-wrapper.sh \
             "${{ github.event.issue.number }}" \
             "${{ github.repository }}" \
-            --dangerously-skip-permissions -p \
+            --dangerously-skip-permissions --max-budget-usd 15 -p \
             "/implement-issue #${{ github.event.issue.number }}. You MUST complete the full workflow: write failing tests, implement, verify, commit, and open a PR. Do not stop at planning.${CONTEXT_PROMPT}"
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

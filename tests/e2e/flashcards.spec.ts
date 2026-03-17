@@ -521,4 +521,29 @@ test.describe('Flashcard app', () => {
     await page.keyboard.press('3')
     await expect(page.getByText('All done!')).toBeVisible()
   })
+
+  test('archiving all decks shows "All done" on Review tab', async ({ page }) => {
+    // Create a deck with a card
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Ephemeral')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+    await page.locator('li').filter({ hasText: 'Ephemeral' }).getByRole('button', { name: 'Cards' }).click()
+    await page.getByLabel('Front').fill('Gone soon')
+    await page.getByLabel('Back').fill('Bye')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+    await expect(page.getByRole('heading', { name: /Ephemeral.*1/ })).toBeVisible()
+
+    // Go back to decks list, then verify the card appears in global review
+    await page.getByRole('button', { name: '← Decks' }).click()
+    await page.getByRole('navigation').getByRole('button', { name: 'Review' }).click()
+    await expect(page.getByText('Gone soon')).toBeVisible()
+
+    // Archive the deck
+    await page.getByRole('navigation').getByRole('button', { name: 'Decks' }).click()
+    await page.locator('li').filter({ hasText: 'Ephemeral' }).getByRole('button', { name: /archive deck ephemeral/i }).click()
+
+    // Review tab should show "All done" — no cards from archived decks
+    await page.getByRole('navigation').getByRole('button', { name: 'Review' }).click()
+    await expect(page.getByText('All done!')).toBeVisible()
+  })
 })

@@ -56,7 +56,10 @@ export const getDueCardsByDeck = async (deckId: string, now: Date = new Date()) 
 }
 
 export const getDueCards = async (now: Date = new Date()) => {
-  const allCards = await db.cards.toArray()
+  // Only include cards from active decks
+  const activeDecks = await db.decks.where('status').equals('active').toArray()
+  const activeDeckIds = new Set(activeDecks.map((d) => d.id))
+  const allCards = (await db.cards.toArray()).filter((c) => activeDeckIds.has(c.deckId))
   const schedules = await db.schedules.bulkGet(allCards.map((c) => c.id))
   // Cards with no schedule are new — always due. Cards with a schedule are due if due <= now.
   return allCards.filter((_, i) => {

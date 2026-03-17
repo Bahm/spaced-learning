@@ -796,3 +796,115 @@ describe('RUNNER_SETUP.md documents gstack', () => {
     expect(runnerSetup).toMatch(/gstack/i)
   })
 })
+
+describe('automation rules', () => {
+  const AUTOMATION_RULES_PATH = join(__dirname, '../../.claude/rules/automation.md')
+
+  it('automation.md exists in .claude/rules/', () => {
+    expect(existsSync(AUTOMATION_RULES_PATH)).toBe(true)
+  })
+
+  it('has valid YAML frontmatter with paths key', () => {
+    const content = readFileSync(AUTOMATION_RULES_PATH, 'utf-8')
+    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/)
+    expect(frontmatterMatch, 'must have YAML frontmatter').not.toBeNull()
+    const frontmatter = frontmatterMatch![1]!
+    expect(frontmatter).toContain('paths:')
+  })
+
+  it('scopes to automation-related paths', () => {
+    const content = readFileSync(AUTOMATION_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/\.github\//)
+    expect(content).toMatch(/\.claude\//)
+  })
+
+  it('documents self-hosted runner security model', () => {
+    const content = readFileSync(AUTOMATION_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/self-hosted/i)
+    expect(content).toMatch(/dangerously-skip-permissions/i)
+  })
+
+  it('documents nvm sourcing requirement', () => {
+    const content = readFileSync(AUTOMATION_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/nvm/i)
+  })
+
+  it('documents GH_TOKEN gotcha', () => {
+    const content = readFileSync(AUTOMATION_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/GH_TOKEN/i)
+    expect(content).toMatch(/unset/i)
+  })
+
+  it('documents budget cap requirement', () => {
+    const content = readFileSync(AUTOMATION_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/max-budget-usd|budget.*cap/i)
+  })
+
+  it('documents gstack and superpowers plugin setup', () => {
+    const content = readFileSync(AUTOMATION_RULES_PATH, 'utf-8')
+    expect(content).toMatch(/gstack/i)
+    expect(content).toMatch(/superpowers/i)
+  })
+})
+
+describe('implement-from-issue workflow has budget cap', () => {
+  const workflowContent = readFileSync(WORKFLOW_PATH, 'utf-8')
+
+  it('includes --max-budget-usd flag in Claude CLI invocation', () => {
+    expect(workflowContent).toMatch(/--max-budget-usd/)
+  })
+
+  it('budget cap is a reasonable value (between 1 and 50)', () => {
+    const budgetMatch = workflowContent.match(/--max-budget-usd\s+(\d+)/)
+    expect(budgetMatch, 'must have a numeric budget value').not.toBeNull()
+    const budget = parseInt(budgetMatch![1]!, 10)
+    expect(budget).toBeGreaterThanOrEqual(1)
+    expect(budget).toBeLessThanOrEqual(50)
+  })
+})
+
+describe('settings.json hooks are properly configured', () => {
+  const settingsContent = readFileSync(join(__dirname, '../../.claude/settings.json'), 'utf-8')
+  const settings = JSON.parse(settingsContent)
+
+  it('has PostToolUse hooks', () => {
+    expect(settings.hooks).toHaveProperty('PostToolUse')
+    expect(Array.isArray(settings.hooks.PostToolUse)).toBe(true)
+    expect(settings.hooks.PostToolUse.length).toBeGreaterThan(0)
+  })
+
+  it('PostToolUse hook matches Edit|Write', () => {
+    const postToolUse = settings.hooks.PostToolUse[0]
+    expect(postToolUse.matcher).toMatch(/Edit|Write/)
+  })
+
+  it('PostToolUse hook runs tsc --noEmit', () => {
+    const postToolUse = settings.hooks.PostToolUse[0]
+    const hookCommand = postToolUse.hooks[0].command
+    expect(hookCommand).toMatch(/tsc --noEmit/)
+  })
+
+  it('has Notification hooks', () => {
+    expect(settings.hooks).toHaveProperty('Notification')
+    expect(Array.isArray(settings.hooks.Notification)).toBe(true)
+    expect(settings.hooks.Notification.length).toBeGreaterThan(0)
+  })
+})
+
+describe('implement-issue skill audit covers automation', () => {
+  const skillContent = readFileSync(SKILL_PATH, 'utf-8')
+
+  it('audit checklist mentions automation rules file', () => {
+    const step9Match = skillContent.match(/### 9\. Consolidate learnings([\s\S]*)$/)
+    expect(step9Match).not.toBeNull()
+    const step9Content = step9Match![1]!
+    expect(step9Content).toMatch(/automation/i)
+  })
+
+  it('audit checklist mentions budget cap', () => {
+    const step9Match = skillContent.match(/### 9\. Consolidate learnings([\s\S]*)$/)
+    expect(step9Match).not.toBeNull()
+    const step9Content = step9Match![1]!
+    expect(step9Content).toMatch(/max-budget-usd|budget.*cap/i)
+  })
+})

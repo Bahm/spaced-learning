@@ -164,6 +164,8 @@ Omit the `Closes #N` line when there is no associated issue.
    - [ ] Notification hook is configured for user attention prompts
    - [ ] Pre-commit hook blocks broken commits (tsc + vitest)
    - [ ] No stale or redundant content duplicated between CLAUDE.md and path-scoped rules
+   - [ ] Automated workflow has `--max-budget-usd` cap to prevent runaway costs
+   - [ ] Automation rules file (`.claude/rules/automation.md`) covers self-hosted runner model, nvm, GH_TOKEN, budget caps
    If any item is missing or broken, fix it in this step and include the fix in the commit. This audit exists because best practices drift silently — PR #33 applied them once, but without a recurring check they erode over time.
 7. **Improve this skill via `/skill-creator`** — if any lessons from this session apply to the implement-issue *workflow itself* (a step that was skipped, a pattern that should be enforced, an instruction that was unclear), invoke `/skill-creator` to apply them as targeted edits to this SKILL.md. You don't need the full eval loop every time — a focused edit pass is enough for small improvements. Use the full eval loop when making substantial structural changes. The goal: the skill gets slightly better after every session, not only when problems are explicitly reported.
 8. **Commit and push retrospection changes** — the edits above produce real file changes (MEMORY.md, CLAUDE.md, SKILL.md). Stage and commit them so they land on `main` when the PR merges. Use a `docs:` or `chore:` prefix:

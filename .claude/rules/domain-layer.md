@@ -5,7 +5,9 @@ paths:
 
 # Domain Layer Rules
 
-Pure functions only — zero imports from `db/` or `hooks/`.
+Pure functions only — zero imports from `db/` or `hooks/`. Enforced by structural test.
+
+`PUBLIC_DECK_CATALOG` uses hardcoded `cardCount` values (not derived from seed data imports). A structural test verifies counts match actual seed data.
 
 ## ts-fsrs API
 

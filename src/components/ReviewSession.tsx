@@ -67,7 +67,7 @@ export const ReviewSession = ({ deckId }: Props = {}) => {
       <div aria-busy="false" style={{ textAlign: 'center', padding: '40px' }}>
         <h2>All done!</h2>
         <p>No cards due for review. Great work!</p>
-        {reviewedToday > 0 && (
+        {reviewedToday !== undefined && reviewedToday > 0 && (
           <p style={{ color: '#888' }}>Reviewed today: {reviewedToday}</p>
         )}
       </div>
@@ -78,7 +78,7 @@ export const ReviewSession = ({ deckId }: Props = {}) => {
     <div aria-busy="false" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', color: '#aaa' }}>
         <span>{remaining} card{remaining !== 1 ? 's' : ''} remaining</span>
-        {reviewedToday > 0 && <span>Reviewed today: {reviewedToday}</span>}
+        {reviewedToday !== undefined && reviewedToday > 0 && <span>Reviewed today: {reviewedToday}</span>}
       </div>
 
       <div

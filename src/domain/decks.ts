@@ -1,8 +1,4 @@
 import type { Deck, PublicDeckDefinition } from './types'
-import { VIETNAMESE_SEED_CARDS } from '../db/seedData'
-import { YOGA_SEED_CARDS } from '../db/yogaSeedData'
-import { SENTENCES_SEED_CARDS } from '../db/sentencesSeedData'
-import { FOOD_SEED_CARDS } from '../db/foodSeedData'
 
 export class DeckValidationError extends Error {
   constructor(message: string) {
@@ -23,29 +19,29 @@ export const createDeck = (name: string): Deck => {
   }
 }
 
-export const PUBLIC_DECK_CATALOG: PublicDeckDefinition[] = [
+export const PUBLIC_DECK_CATALOG: readonly PublicDeckDefinition[] = [
   {
     id: 'default-vietnamese-deck',
     name: '1000 most common words in Vietnamese',
     description: 'Learn the most frequently used Vietnamese words with English translations.',
-    cardCount: VIETNAMESE_SEED_CARDS.length,
+    cardCount: 1000,
   },
   {
     id: 'default-yoga-deck',
     name: 'Vietnamese yoga vocabulary',
     description: 'Phrases an instructor or student might say in a yoga class, in Vietnamese.',
-    cardCount: YOGA_SEED_CARDS.length,
+    cardCount: 256,
   },
   {
     id: 'default-sentences-deck',
     name: '100 everyday Vietnamese sentences',
     description: 'Common sentences for daily conversations, shopping, dining, and getting around.',
-    cardCount: SENTENCES_SEED_CARDS.length,
+    cardCount: 100,
   },
   {
     id: 'default-food-deck',
     name: 'Vietnamese food & dining',
     description: 'Dishes, ingredients, cooking terms, and restaurant phrases for food lovers.',
-    cardCount: FOOD_SEED_CARDS.length,
+    cardCount: 163,
   },
 ]

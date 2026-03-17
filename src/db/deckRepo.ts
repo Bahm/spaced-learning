@@ -9,9 +9,6 @@ import { FOOD_SEED_CARDS } from './foodSeedData'
 
 export const addDeck = (deck: Deck): Promise<string> => db.decks.add(deck)
 
-export const getAllDecks = (): Promise<Deck[]> =>
-  db.decks.orderBy('createdAt').toArray()
-
 export const DEFAULT_DECK_ID = 'default-vietnamese-deck'
 export const YOGA_DECK_ID = 'default-yoga-deck'
 export const SENTENCES_DECK_ID = 'default-sentences-deck'

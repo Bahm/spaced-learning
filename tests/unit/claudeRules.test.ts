@@ -1025,3 +1025,144 @@ describe('e2e-testing.md covers known pitfalls', () => {
     expect(e2eRules).toMatch(/waitForTimeout|wait.*ms|1000/i)
   })
 })
+
+describe('PUBLIC_DECK_CATALOG cardCount matches actual seed data', () => {
+  it('every catalog entry has correct cardCount', async () => {
+    const { PUBLIC_DECK_CATALOG } = await import('../../src/domain/decks')
+    const { VIETNAMESE_SEED_CARDS } = await import('../../src/db/seedData')
+    const { YOGA_SEED_CARDS } = await import('../../src/db/yogaSeedData')
+    const { SENTENCES_SEED_CARDS } = await import('../../src/db/sentencesSeedData')
+    const { FOOD_SEED_CARDS } = await import('../../src/db/foodSeedData')
+
+    const expectedCounts: Record<string, number> = {
+      'default-vietnamese-deck': VIETNAMESE_SEED_CARDS.length,
+      'default-yoga-deck': YOGA_SEED_CARDS.length,
+      'default-sentences-deck': SENTENCES_SEED_CARDS.length,
+      'default-food-deck': FOOD_SEED_CARDS.length,
+    }
+
+    for (const entry of PUBLIC_DECK_CATALOG) {
+      const expected = expectedCounts[entry.id]
+      expect(expected, `Unknown deck ID in catalog: ${entry.id}`).toBeDefined()
+      expect(entry.cardCount, `${entry.name} cardCount mismatch`).toBe(expected)
+    }
+  })
+})
+
+describe('domain layer purity — no imports from db/ or hooks/', () => {
+  const domainDir = join(__dirname, '../../src/domain')
+  const domainFiles = readdirSync(domainDir).filter(f => f.endsWith('.ts'))
+
+  for (const file of domainFiles) {
+    it(`${file} has no imports from '../db/' or '../hooks/'`, () => {
+      const content = readFileSync(join(domainDir, file), 'utf-8')
+      const importLines = content.split('\n').filter(line => /^\s*import\s/.test(line))
+      for (const line of importLines) {
+        expect(line, `${file} violates domain purity: ${line.trim()}`).not.toMatch(/from\s+['"]\.\.\/db\//)
+        expect(line, `${file} violates domain purity: ${line.trim()}`).not.toMatch(/from\s+['"]\.\.\/hooks\//)
+      }
+    })
+  }
+})
+
+describe('no dead exports in repo layer', () => {
+  it('cardRepo.ts does not export getAllCards (removed as dead code)', () => {
+    const content = readFileSync(join(__dirname, '../../src/db/cardRepo.ts'), 'utf-8')
+    expect(content).not.toMatch(/export\s+(const|function)\s+getAllCards/)
+  })
+
+  it('cardRepo.ts does not export getCardsByDeck (removed as dead code)', () => {
+    const content = readFileSync(join(__dirname, '../../src/db/cardRepo.ts'), 'utf-8')
+    expect(content).not.toMatch(/export\s+(const|function)\s+getCardsByDeck/)
+  })
+
+  it('deckRepo.ts does not export getAllDecks (removed as dead code)', () => {
+    const content = readFileSync(join(__dirname, '../../src/db/deckRepo.ts'), 'utf-8')
+    expect(content).not.toMatch(/export\s+(const|function)\s+getAllDecks/)
+  })
+
+  it('useDueCards.ts does not exist (removed as dead code)', () => {
+    expect(existsSync(join(__dirname, '../../src/hooks/useDueCards.ts'))).toBe(false)
+  })
+})
+
+describe('hooks must not mask loading state', () => {
+  const hooksDir = join(__dirname, '../../src/hooks')
+  const hookFiles = readdirSync(hooksDir).filter(f => f.endsWith('.ts'))
+
+  it('no exported hook uses ?? [] to mask undefined loading state', () => {
+    for (const file of hookFiles) {
+      const content = readFileSync(join(hooksDir, file), 'utf-8')
+      // Find exported functions that use ?? [] anywhere in their body
+      // Match export const ... = ... ?? []  across multiple lines
+      const exportBlocks = content.match(/export\s+const\s+\w+[\s\S]*?(?=\nexport\s|\n\n|$)/g) ?? []
+      for (const block of exportBlocks) {
+        if (/\?\?\s*\[\]/.test(block)) {
+          const name = block.match(/export\s+const\s+(\w+)/)?.[1] ?? 'unknown'
+          expect.fail(`${file}: exported hook '${name}' masks loading state with ?? []`)
+        }
+      }
+    }
+  })
+
+  it('no hook passes a third argument (default value) to useLiveQuery', () => {
+    for (const file of hookFiles) {
+      const content = readFileSync(join(hooksDir, file), 'utf-8')
+      // Match useLiveQuery calls and extract the full call text
+      const calls = [...content.matchAll(/useLiveQuery\(/g)]
+      for (const call of calls) {
+        const startIdx = call.index! + call[0].length
+        // Extract balanced call content
+        let depth = 1
+        let endIdx = startIdx
+        for (let i = startIdx; i < content.length && depth > 0; i++) {
+          const ch = content[i]
+          if (ch === '(' || ch === '[' || ch === '{') depth++
+          else if (ch === ')' || ch === ']' || ch === '}') {
+            depth--
+            if (depth === 0) endIdx = i
+          }
+        }
+        const callContent = content.slice(startIdx, endIdx)
+        // Count top-level commas (depth=0 relative to the call args)
+        let argDepth = 0
+        let commaCount = 0
+        for (const ch of callContent) {
+          if (ch === '(' || ch === '[' || ch === '{') argDepth++
+          else if (ch === ')' || ch === ']' || ch === '}') argDepth--
+          else if (ch === ',' && argDepth === 0) commaCount++
+        }
+        // Check if last non-whitespace before closing paren is a comma (trailing comma)
+        const trimmed = callContent.trimEnd()
+        const hasTrailingComma = trimmed.endsWith(',')
+        const actualArgs = hasTrailingComma ? commaCount : commaCount + 1
+        // useLiveQuery(fn, deps) = 2 args; useLiveQuery(fn, deps, default) = 3 args
+        if (actualArgs >= 3) {
+          expect.fail(`${file}: useLiveQuery called with ${actualArgs} args (provides a default value, masking loading state)`)
+        }
+      }
+    }
+  })
+})
+
+describe('skill documentation consistency', () => {
+  it('implement-issue co-author matches current model (Opus 4.6)', () => {
+    const skillContent = readFileSync(SKILL_PATH, 'utf-8')
+    const coAuthorMatch = skillContent.match(/Co-Authored-By:\s*Claude\s+(\w+)\s+([\d.]+)/)
+    expect(coAuthorMatch, 'skill must have a Co-Authored-By line').not.toBeNull()
+    // Should use the model actually running (Opus 4.6), not an outdated one
+    expect(coAuthorMatch![1]).toBe('Opus')
+    expect(coAuthorMatch![2]).toBe('4.6')
+  })
+
+  it('spaced-learning-guide schema version matches actual db.ts version', () => {
+    const guideSkillPath = join(__dirname, '../../.claude/skills/spaced-learning-guide/SKILL.md')
+    if (!existsSync(guideSkillPath)) return // skip if skill doesn't exist
+    const guideContent = readFileSync(guideSkillPath, 'utf-8')
+    const dbTs = readFileSync(join(__dirname, '../../src/db/db.ts'), 'utf-8')
+    const versions = [...dbTs.matchAll(/db\.version\((\d+)\)/g)].map(m => parseInt(m[1]!, 10))
+    const maxVersion = Math.max(...versions)
+    // Guide should reference the current version
+    expect(guideContent, `spaced-learning-guide references wrong schema version (should be v${maxVersion})`).toMatch(new RegExp(`version ${maxVersion}|v${maxVersion}`))
+  })
+})

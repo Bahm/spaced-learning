@@ -35,17 +35,13 @@ export const useArchivedDecks = (): Deck[] | undefined =>
     [],
   )
 
-export const useUninstalledPublicDeckIds = (): Set<string> => {
+export const useUninstalledPublicDeckIds = (): Set<string> | undefined => {
   const ids = useLiveQuery(
     async () => {
       const uninstalled = await db.decks.where('status').equals('uninstalled').toArray()
       return uninstalled.map((d) => d.id)
     },
     [],
-    [] as string[],
-  ) ?? []
-  return new Set(ids)
+  )
+  return ids ? new Set(ids) : undefined
 }
-
-export const useDecks = (): Deck[] =>
-  useLiveQuery(() => db.decks.orderBy('createdAt').toArray(), [], []) ?? []

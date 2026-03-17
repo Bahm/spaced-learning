@@ -3,12 +3,6 @@ import type { Card } from '../domain/types'
 
 export const addCard = (card: Card): Promise<string> => db.cards.add(card)
 
-export const getAllCards = (): Promise<Card[]> =>
-  db.cards.orderBy('createdAt').toArray()
-
-export const getCardsByDeck = (deckId: string): Promise<Card[]> =>
-  db.cards.where('deckId').equals(deckId).sortBy('createdAt')
-
 export const updateCard = (card: Card): Promise<string> => db.cards.put(card)
 
 export const deleteCard = async (id: string): Promise<void> => {

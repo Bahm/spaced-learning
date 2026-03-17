@@ -56,9 +56,11 @@ Three Dexie tables (schema version 4). See `src/db/db.ts` for full definitions.
 
 ## Tests
 
-Unit tests cover `src/domain/` only. E2E tests cover full user flows in Chromium.
+Unit tests cover `src/domain/` only. E2E tests cover full user flows in Chromium. Structural tests in `claudeRules.test.ts` enforce best practices (rules, hooks, workflow config).
 
 See `.claude/rules/e2e-testing.md` for Playwright-specific patterns and pitfalls.
+
+**CI-safe tests only**: never test `.git/hooks/` (not in CI checkout) or file permissions via `statSync` (differ in CI). Only test git-tracked files.
 
 ## Compaction guidance
 

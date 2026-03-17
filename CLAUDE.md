@@ -56,7 +56,7 @@ Three Dexie tables (schema version 5). See `src/db/db.ts` for full definitions.
 
 ## Tests
 
-Unit tests cover `src/domain/` only. E2E tests cover full user flows in Chromium. Structural tests in `claudeRules.test.ts` enforce best practices (rules, hooks, workflow config).
+Unit tests cover `src/domain/` only. E2E tests cover full user flows in Chromium. Structural tests in `claudeRules.test.ts` enforce architecture (domain purity, no dead exports, hook loading patterns, skill doc accuracy, workflow config).
 
 See `.claude/rules/e2e-testing.md` for Playwright-specific patterns and pitfalls.
 

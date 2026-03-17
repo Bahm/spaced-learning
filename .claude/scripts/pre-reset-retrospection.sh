@@ -38,6 +38,15 @@ done
 
 log() { echo "$LOG_PREFIX $*"; }
 
+# --- Auto-update config from usage API ---
+# Fetch the latest weekly reset time before checking the time window.
+# This ensures resetDay/resetHourUTC stay accurate without manual config.
+if [ -x "$SCRIPT_DIR/fetch-weekly-reset.sh" ]; then
+  "$SCRIPT_DIR/fetch-weekly-reset.sh" "$SCRIPT_DIR/retrospection-config.json" || {
+    log "Warning: fetch-weekly-reset.sh failed. Using existing config."
+  }
+fi
+
 # --- Load config ---
 if [ ! -f "$CONFIG_FILE" ]; then
   log "ERROR: Config file not found: $CONFIG_FILE"

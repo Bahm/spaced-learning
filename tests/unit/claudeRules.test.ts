@@ -930,3 +930,98 @@ describe('implement-issue skill audit covers automation', () => {
     expect(step9Content).toMatch(/max-budget-usd|budget.*cap/i)
   })
 })
+
+describe('workflow steps all have working-directory when using gh/git', () => {
+  const workflowContent = readFileSync(WORKFLOW_PATH, 'utf-8')
+
+  it('every run: step that uses gh or git has working-directory set', () => {
+    // Split into steps by "- name:" pattern
+    const steps = workflowContent.split(/(?=\s+- name:)/).filter(s => s.includes('run:'))
+    for (const step of steps) {
+      const nameMatch = step.match(/- name:\s*(.+)/)
+      const stepName = nameMatch?.[1] ?? 'unknown step'
+      const runBlock = step.match(/run:\s*\|?\s*([\s\S]*?)(?=\s+(?:env:|if:|uses:|working-directory:|timeout-minutes:|id:|\s+- name:)|$)/)?.[1] ?? ''
+      const usesGhOrGit = /\bgh\b|\bgit\b/.test(runBlock)
+      if (usesGhOrGit) {
+        expect(step, `Step "${stepName}" uses gh/git but lacks working-directory`).toMatch(/working-directory:/)
+      }
+    }
+  })
+})
+
+describe('implement-issue skill has all 9 steps in order', () => {
+  const skillContent = readFileSync(SKILL_PATH, 'utf-8')
+
+  it('contains steps 1 through 9 sequentially', () => {
+    const stepNames = [
+      'Read the spec',
+      'Load project context',
+      'Create a feature branch',
+      'Write failing tests',
+      'Implement',
+      'Verify',
+      'Commit',
+      'Create PR',
+      'Consolidate learnings',
+    ]
+    for (let i = 0; i < stepNames.length; i++) {
+      const stepNum = i + 1
+      const pattern = new RegExp(`### ${stepNum}\\.\\s+${stepNames[i]!.split(' ')[0]!}`, 'i')
+      expect(skillContent, `Step ${stepNum} (${stepNames[i]!}) must exist`).toMatch(pattern)
+    }
+  })
+
+  it('step 4 explicitly says TDD is non-negotiable', () => {
+    const step4Match = skillContent.match(/### 4\. Write failing tests([\s\S]*?)(?=### 5\.)/)
+    expect(step4Match).not.toBeNull()
+    expect(step4Match![1]!).toMatch(/non-negotiable/i)
+  })
+})
+
+describe('CLAUDE.md consistency with path-scoped rules', () => {
+  const claudeMd = readFileSync(join(__dirname, '../../CLAUDE.md'), 'utf-8')
+
+  it('references e2e-testing.md for Playwright patterns', () => {
+    expect(claudeMd).toMatch(/e2e-testing\.md/)
+  })
+
+  it('references superpowers-integration.md', () => {
+    expect(claudeMd).toMatch(/superpowers-integration\.md/)
+  })
+
+  it('references gstack-integration.md', () => {
+    expect(claudeMd).toMatch(/gstack-integration\.md/)
+  })
+
+  it('schema version in CLAUDE.md matches actual db.ts version', () => {
+    const dbTs = readFileSync(join(__dirname, '../../src/db/db.ts'), 'utf-8')
+    // Find the highest version number in db.ts
+    const versions = [...dbTs.matchAll(/db\.version\((\d+)\)/g)].map(m => parseInt(m[1]!, 10))
+    const maxVersion = Math.max(...versions)
+    // CLAUDE.md should reference this version
+    const claudeVersionMatch = claudeMd.match(/schema version (\d+)/)
+    expect(claudeVersionMatch, 'CLAUDE.md must mention schema version').not.toBeNull()
+    expect(parseInt(claudeVersionMatch![1]!, 10)).toBe(maxVersion)
+  })
+})
+
+describe('e2e-testing.md covers known pitfalls', () => {
+  const e2eRules = readFileSync(join(__dirname, '../../.claude/rules/e2e-testing.md'), 'utf-8')
+
+  it('documents exact:true pattern for button name collisions', () => {
+    expect(e2eRules).toMatch(/exact:\s*true/i)
+  })
+
+  it('documents getByLabel aria-label substring pitfall', () => {
+    expect(e2eRules).toMatch(/aria-label|getByLabel/)
+  })
+
+  it('documents test deck naming collision pitfall', () => {
+    expect(e2eRules).toMatch(/deck name|test deck/i)
+  })
+
+  it('documents IndexedDB clear and wait pattern', () => {
+    expect(e2eRules).toMatch(/deleteDatabase|IndexedDB/i)
+    expect(e2eRules).toMatch(/waitForTimeout|wait.*ms|1000/i)
+  })
+})

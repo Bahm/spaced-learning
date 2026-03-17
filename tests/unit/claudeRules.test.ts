@@ -8,6 +8,7 @@ const WRAPPER_SCRIPT_PATH = join(__dirname, '../../.claude/scripts/quota-retry-w
 const WORKFLOW_PATH = join(__dirname, '../../.github/workflows/implement-from-issue.yml')
 const RETROSPECTION_SCRIPT_PATH = join(__dirname, '../../.claude/scripts/pre-reset-retrospection.sh')
 const RETROSPECTION_CONFIG_PATH = join(__dirname, '../../.claude/scripts/retrospection-config.json')
+const UPDATE_RESET_CONFIG_PATH = join(__dirname, '../../.claude/scripts/update-reset-config.sh')
 
 describe('.claude/rules/ structure', () => {
   it('rules directory exists', () => {
@@ -341,6 +342,166 @@ describe('retrospection-config.json', () => {
     expect(config.maxBudgetUsd).toBeGreaterThan(0)
     expect(Array.isArray(config.tasks)).toBe(true)
     expect(config.tasks.length).toBeGreaterThan(0)
+  })
+})
+
+describe('update-reset-config.sh auto-detection script', () => {
+  it('update-reset-config.sh exists', () => {
+    expect(existsSync(UPDATE_RESET_CONFIG_PATH)).toBe(true)
+  })
+
+  it('is executable (has shebang)', () => {
+    const content = readFileSync(UPDATE_RESET_CONFIG_PATH, 'utf-8')
+    expect(content.startsWith('#!/')).toBe(true)
+  })
+
+  it('has executable permissions', () => {
+    const stat = statSync(UPDATE_RESET_CONFIG_PATH)
+    const isExecutable = (stat.mode & 0o111) !== 0
+    expect(isExecutable).toBe(true)
+  })
+
+  it('reads from a calibration log file', () => {
+    const content = readFileSync(UPDATE_RESET_CONFIG_PATH, 'utf-8')
+    expect(content).toMatch(/calibration|CALIBRATION|reset.*log/i)
+  })
+
+  it('updates retrospection-config.json with derived resetDay and resetHourUTC', () => {
+    const content = readFileSync(UPDATE_RESET_CONFIG_PATH, 'utf-8')
+    expect(content).toMatch(/resetDay/)
+    expect(content).toMatch(/resetHourUTC/)
+    expect(content).toMatch(/retrospection-config\.json/)
+  })
+
+  it('derives day-of-week from observed reset timestamps', () => {
+    const content = readFileSync(UPDATE_RESET_CONFIG_PATH, 'utf-8')
+    expect(content).toMatch(/date.*%A|day.*of.*week|day_of_week|dayOfWeek/i)
+  })
+
+  it('derives UTC hour from observed reset timestamps', () => {
+    const content = readFileSync(UPDATE_RESET_CONFIG_PATH, 'utf-8')
+    expect(content).toMatch(/UTC|utc.*hour|hour.*utc/i)
+  })
+
+  it('preserves other config fields (windowHours, maxBudgetUsd, tasks) when updating', () => {
+    const content = readFileSync(UPDATE_RESET_CONFIG_PATH, 'utf-8')
+    // Should use jq or similar to update only specific fields, not overwrite the whole file
+    expect(content).toMatch(/jq|windowHours|tasks/)
+  })
+})
+
+describe('update-reset-config.sh bash integration', () => {
+  const execSync = require('child_process').execSync
+  const { mkdtempSync, writeFileSync, unlinkSync, rmdirSync } = require('fs')
+  const { tmpdir } = require('os')
+
+  it('updates config from a calibration log with a single entry', () => {
+    // Create a temp directory with a calibration log and config
+    const tmpDir = mkdtempSync(join(tmpdir(), 'reset-config-test-'))
+    const calibrationLog = join(tmpDir, 'quota-reset-calibration.log')
+    const configFile = join(tmpDir, 'retrospection-config.json')
+
+    // Write a calibration entry — epoch for a known Monday 00:00 UTC
+    // 2026-03-16 00:00:00 UTC = Monday = epoch 1773619200
+    writeFileSync(calibrationLog, '1773619200\n')
+    writeFileSync(configFile, JSON.stringify({
+      resetDay: 'Friday',
+      resetHourUTC: 12,
+      windowHours: 2,
+      maxBudgetUsd: 5,
+      tasks: ['test task']
+    }))
+
+    try {
+      execSync(
+        `bash "${UPDATE_RESET_CONFIG_PATH}" "${calibrationLog}" "${configFile}"`,
+        { encoding: 'utf-8', timeout: 5000 }
+      )
+      const updated = JSON.parse(readFileSync(configFile, 'utf-8'))
+      expect(updated.resetDay).toBe('Monday')
+      expect(updated.resetHourUTC).toBe(0)
+      // Preserved fields
+      expect(updated.windowHours).toBe(2)
+      expect(updated.maxBudgetUsd).toBe(5)
+      expect(updated.tasks).toEqual(['test task'])
+    } finally {
+      unlinkSync(calibrationLog)
+      unlinkSync(configFile)
+      rmdirSync(tmpDir)
+    }
+  })
+
+  it('uses the most recent entry when multiple entries exist', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'reset-config-test-'))
+    const calibrationLog = join(tmpDir, 'quota-reset-calibration.log')
+    const configFile = join(tmpDir, 'retrospection-config.json')
+
+    // First entry: Monday 00:00 UTC (epoch 1773619200 = 2026-03-16)
+    // Second entry: Wednesday 06:00 UTC (epoch 1773813600 = 2026-03-18)
+    writeFileSync(calibrationLog, '1773619200\n1773813600\n')
+    writeFileSync(configFile, JSON.stringify({
+      resetDay: 'Friday',
+      resetHourUTC: 12,
+      windowHours: 2,
+      maxBudgetUsd: 5,
+      tasks: ['test task']
+    }))
+
+    try {
+      execSync(
+        `bash "${UPDATE_RESET_CONFIG_PATH}" "${calibrationLog}" "${configFile}"`,
+        { encoding: 'utf-8', timeout: 5000 }
+      )
+      const updated = JSON.parse(readFileSync(configFile, 'utf-8'))
+      expect(updated.resetDay).toBe('Wednesday')
+      expect(updated.resetHourUTC).toBe(6)
+    } finally {
+      unlinkSync(calibrationLog)
+      unlinkSync(configFile)
+      rmdirSync(tmpDir)
+    }
+  })
+
+  it('does nothing when calibration log is empty', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'reset-config-test-'))
+    const calibrationLog = join(tmpDir, 'quota-reset-calibration.log')
+    const configFile = join(tmpDir, 'retrospection-config.json')
+
+    writeFileSync(calibrationLog, '')
+    const originalConfig = {
+      resetDay: 'Friday',
+      resetHourUTC: 12,
+      windowHours: 2,
+      maxBudgetUsd: 5,
+      tasks: ['test task']
+    }
+    writeFileSync(configFile, JSON.stringify(originalConfig))
+
+    try {
+      execSync(
+        `bash "${UPDATE_RESET_CONFIG_PATH}" "${calibrationLog}" "${configFile}"`,
+        { encoding: 'utf-8', timeout: 5000 }
+      )
+      const updated = JSON.parse(readFileSync(configFile, 'utf-8'))
+      expect(updated.resetDay).toBe('Friday')
+      expect(updated.resetHourUTC).toBe(12)
+    } finally {
+      unlinkSync(calibrationLog)
+      unlinkSync(configFile)
+      rmdirSync(tmpDir)
+    }
+  })
+})
+
+describe('quota-retry-wrapper logs reset times for calibration', () => {
+  it('quota-retry-wrapper.sh writes to calibration log after parsing reset time', () => {
+    const content = readFileSync(WRAPPER_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/calibration|CALIBRATION_LOG/i)
+  })
+
+  it('quota-retry-wrapper.sh calls update-reset-config.sh after logging', () => {
+    const content = readFileSync(WRAPPER_SCRIPT_PATH, 'utf-8')
+    expect(content).toMatch(/update-reset-config/)
   })
 })
 

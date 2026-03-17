@@ -23,9 +23,11 @@ ISSUE_NUMBER="${1:?Usage: $0 <issue_number> <github_repo> <claude_args...>}"
 GITHUB_REPO="${2:?Usage: $0 <issue_number> <github_repo> <claude_args...>}"
 shift 2
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MAX_RETRIES="${MAX_RETRIES:-2}"
 DEFAULT_WAIT_SECS="${DEFAULT_WAIT_SECS:-3600}"
 RETRY_COUNT=0
+CALIBRATION_LOG="${SCRIPT_DIR}/quota-reset-calibration.log"
 
 # Post a comment on the GitHub issue (if issue number and repo are provided)
 post_comment() {
@@ -183,6 +185,16 @@ while true; do
       if PARSED_WAIT=$(calculate_wait_secs "$RESET_STR"); then
         WAIT_SECS="$PARSED_WAIT"
         echo "Quota reset time detected: $RESET_STR"
+
+        # Log the reset epoch to calibration file for auto-config updates
+        RESET_EPOCH=$(( $(date +%s) + PARSED_WAIT - 60 ))  # Remove the 60s buffer to get actual reset epoch
+        echo "$RESET_EPOCH" >> "$CALIBRATION_LOG"
+        echo "Logged reset epoch $RESET_EPOCH to calibration log."
+
+        # Auto-update retrospection config from calibration data
+        if [ -x "$SCRIPT_DIR/update-reset-config.sh" ]; then
+          "$SCRIPT_DIR/update-reset-config.sh" "$CALIBRATION_LOG" "$SCRIPT_DIR/retrospection-config.json" || true
+        fi
       else
         echo "Could not calculate wait from reset time '$RESET_STR'. Using default wait."
       fi

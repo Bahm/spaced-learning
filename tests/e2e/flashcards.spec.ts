@@ -224,6 +224,109 @@ test.describe('Flashcard app', () => {
     await expect(page.getByText('Capital of Japan')).toBeVisible()
   })
 
+  // ── Edit cards ─────────────────────────────────────────────────────────────
+
+  test('edit button opens form pre-filled with card values', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Edit Test')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+    await page.locator('li').filter({ hasText: 'Edit Test' }).getByRole('button', { name: 'Cards' }).click()
+
+    await page.getByLabel('Front').fill('Original Q')
+    await page.getByLabel('Back').fill('Original A')
+    await page.getByLabel('Explanation').fill('Original hint')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+    await expect(page.getByText('Original Q')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Edit card: Original Q' }).click()
+
+    // Form should be pre-filled with existing values
+    const editFront = page.locator('form').filter({ hasText: 'Save' }).getByLabel('Front')
+    const editBack = page.locator('form').filter({ hasText: 'Save' }).getByLabel('Back')
+    const editExplanation = page.locator('form').filter({ hasText: 'Save' }).getByLabel('Explanation')
+    await expect(editFront).toHaveValue('Original Q')
+    await expect(editBack).toHaveValue('Original A')
+    await expect(editExplanation).toHaveValue('Original hint')
+  })
+
+  test('saving edited card updates it in the list', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Edit Save')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+    await page.locator('li').filter({ hasText: 'Edit Save' }).getByRole('button', { name: 'Cards' }).click()
+
+    await page.getByLabel('Front').fill('Before edit')
+    await page.getByLabel('Back').fill('Old answer')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+    await expect(page.getByText('Before edit')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Edit card: Before edit' }).click()
+
+    const editForm = page.locator('form').filter({ hasText: 'Save' })
+    await editForm.getByLabel('Front').fill('After edit')
+    await editForm.getByLabel('Back').fill('New answer')
+    await editForm.getByRole('button', { name: 'Save' }).click()
+
+    // Updated card should appear in list
+    await expect(page.getByText('After edit')).toBeVisible()
+    await expect(page.getByText('→ New answer')).toBeVisible()
+    // Old values should be gone
+    await expect(page.getByText('Before edit')).not.toBeVisible()
+  })
+
+  test('cancel edit returns to card list without changes', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Edit Cancel')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+    await page.locator('li').filter({ hasText: 'Edit Cancel' }).getByRole('button', { name: 'Cards' }).click()
+
+    await page.getByLabel('Front').fill('Unchanged')
+    await page.getByLabel('Back').fill('Same')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+
+    await page.getByRole('button', { name: 'Edit card: Unchanged' }).click()
+    const editForm = page.locator('form').filter({ hasText: 'Save' })
+    await editForm.getByLabel('Front').fill('Modified')
+    await editForm.getByRole('button', { name: 'Cancel' }).click()
+
+    // Original card unchanged
+    await expect(page.getByText('Unchanged')).toBeVisible()
+    await expect(page.getByText('Modified')).not.toBeVisible()
+  })
+
+  test('edit card preserves schedule (review progress not lost)', async ({ page }) => {
+    await page.getByRole('button', { name: 'Decks' }).click()
+    await page.getByLabel('Deck name').fill('Schedule Keep')
+    await page.getByRole('button', { name: 'Add Deck' }).click()
+    await page.locator('li').filter({ hasText: 'Schedule Keep' }).getByRole('button', { name: 'Cards' }).click()
+
+    await page.getByLabel('Front').fill('Review me')
+    await page.getByLabel('Back').fill('Answer')
+    await page.getByRole('button', { name: 'Add Card' }).click()
+
+    // Review the card first
+    await page.getByRole('button', { name: '← Decks' }).click()
+    await page.locator('li').filter({ hasText: 'Schedule Keep' }).getByRole('button', { name: 'Review' }).click()
+    await page.getByRole('button', { name: 'Show Answer' }).click()
+    await page.getByRole('button', { name: 'Good' }).click()
+    await expect(page.getByText('All done!')).toBeVisible()
+
+    // Go back to decks list, then into deck detail
+    await page.getByRole('button', { name: '← Decks' }).click()
+    await page.locator('li').filter({ hasText: 'Schedule Keep' }).getByRole('button', { name: 'Cards' }).click()
+
+    await page.getByRole('button', { name: 'Edit card: Review me' }).click()
+    const editForm = page.locator('form').filter({ hasText: 'Save' })
+    await editForm.getByLabel('Front').fill('Edited card')
+    await editForm.getByRole('button', { name: 'Save' }).click()
+
+    // Card should still not be due (schedule preserved)
+    await page.getByRole('button', { name: '← Decks' }).click()
+    const deckRow = page.locator('li').filter({ hasText: 'Schedule Keep' })
+    // Review button should be disabled since card was just reviewed and not yet due
+    await expect(deckRow.getByRole('button', { name: 'Review' })).toBeDisabled()
+  })
+
   // ── Deck management ─────────────────────────────────────────────────────────
 
   test('empty deck name shows validation error', async ({ page }) => {

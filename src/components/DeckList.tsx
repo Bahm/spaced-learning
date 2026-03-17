@@ -30,10 +30,11 @@ interface UndoState {
 export const DeckList = ({ onOpenDeck, onReviewDeck }: Props) => {
   const deckStatsRaw = useDeckStats()
   const archivedDecksRaw = useArchivedDecks()
-  const isLoading = deckStatsRaw === undefined || archivedDecksRaw === undefined
+  const uninstalledIdsRaw = useUninstalledPublicDeckIds()
+  const isLoading = deckStatsRaw === undefined || archivedDecksRaw === undefined || uninstalledIdsRaw === undefined
   const deckStats = deckStatsRaw ?? []
   const archivedDecks = archivedDecksRaw ?? []
-  const uninstalledIds = useUninstalledPublicDeckIds()
+  const uninstalledIds = uninstalledIdsRaw ?? new Set<string>()
   const [newName, setNewName] = useState('')
   const [error, setError] = useState('')
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)

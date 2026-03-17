@@ -74,14 +74,13 @@ src/
     cards.ts        # createCard(front, back, deckId): Card — validates, generates UUID+timestamp
     scheduler.ts    # createNewSchedule(), getNextSchedule(fsrsCard, rating, now)
   db/               # Dexie side-effects (impure)
-    db.ts           # Dexie instance + schema (decks + cards + schedules tables, v3)
-    deckRepo.ts     # addDeck, getAllDecks, deleteDeck, ensureDefaultDeck
-    cardRepo.ts     # addCard, getAllCards, getCardsByDeck, deleteCard
+    db.ts           # Dexie instance + schema (decks + cards + schedules tables, v5)
+    deckRepo.ts     # addDeck, deleteDeck, archiveDeck, installPublicDeck, etc.
+    cardRepo.ts     # addCard, updateCard, deleteCard, getCardSnapshot, restoreCard
     reviewRepo.ts   # getSchedule, upsertSchedule, getDueCards, getDueCardsByDeck, getReviewedTodayCount
   hooks/            # React hooks bridging domain + db to UI
-    useCards.ts     # useLiveQuery → all cards
-    useDueCards.ts  # useLiveQuery → cards with due <= now
-    useDecks.ts     # useDeckStats() → [{deck, dueCount, totalCount}], useDecks() → Deck[]
+    useCards.ts     # useLiveQuery → cards by deck or all
+    useDecks.ts     # useDeckStats(), useArchivedDecks(), useUninstalledPublicDeckIds()
     useReview.ts    # review session state machine (reveal, rate); accepts optional deckId
     useReviewedToday.ts  # count of cards reviewed today
   components/       # Thin UI shells, minimal logic
@@ -134,20 +133,22 @@ type Rating = 'again' | 'hard' | 'good' | 'easy'
 
 ---
 
-## DB schema (Dexie v4, version 3)
+## DB schema (Dexie v4, version 5)
 
 ```typescript
 // db/db.ts — current schema
-db.version(3).stores({
-  decks:     'id, createdAt',
+db.version(5).stores({
+  decks:     'id, createdAt, status',
   cards:     'id, createdAt, deckId',   // keyed by UUID string
   schedules: 'cardId, due, state, last_review',  // keyed by cardId
 })
 ```
 
 **Migration notes:**
-- v3 upgrade creates a "Default" deck and backfills `deckId` on all pre-existing cards.
-- `ensureDefaultDeck()` in `deckRepo.ts` is called from `App.tsx` on mount to seed the Default deck for fresh installs (upgrade callbacks don't run on new DBs).
+- v3: creates "Default" deck and backfills `deckId` on all pre-existing cards.
+- v4: adds `status` index to decks, sets all existing decks to `'active'`.
+- v5: backfills `explanation` field on existing public deck cards by matching `front` text to seed data.
+- Dexie upgrade callbacks don't run on fresh installs — always call seed functions on app startup too.
 - When bumping schema, always carry forward all previous index definitions unchanged.
 
 `ScheduleRecord` stores all FSRS fields as flat numbers (dates as `.getTime()` timestamps).

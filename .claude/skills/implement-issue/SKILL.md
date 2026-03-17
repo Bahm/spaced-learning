@@ -100,7 +100,7 @@ git add src/domain/... tests/unit/... # etc. — include .claude/skills/ changes
 git commit -m "$(cat <<'EOF'
 feat: <what changed and why in one sentence>
 
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```

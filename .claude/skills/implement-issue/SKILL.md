@@ -166,8 +166,11 @@ Omit the `Closes #N` line when there is no associated issue.
    - [ ] No stale or redundant content duplicated between CLAUDE.md and path-scoped rules
    - [ ] Automated workflow has `--max-budget-usd` cap to prevent runaway costs
    - [ ] Automation rules file (`.claude/rules/automation.md`) covers self-hosted runner model, nvm, GH_TOKEN, budget caps
+   - [ ] CLAUDE.md `schema version N` matches the highest `db.version(N)` in `src/db/db.ts`
+   - [ ] All workflow `run:` steps using `gh`/`git` have `working-directory:` set
+   - [ ] Structural tests in `claudeRules.test.ts` back the audit items above (so drift is caught in CI, not just manually)
    If any item is missing or broken, fix it in this step and include the fix in the commit. This audit exists because best practices drift silently — PR #33 applied them once, but without a recurring check they erode over time.
-7. **Improve this skill via `/skill-creator`** — if any lessons from this session apply to the implement-issue *workflow itself* (a step that was skipped, a pattern that should be enforced, an instruction that was unclear), invoke `/skill-creator` to apply them as targeted edits to this SKILL.md. You don't need the full eval loop every time — a focused edit pass is enough for small improvements. Use the full eval loop when making substantial structural changes. The goal: the skill gets slightly better after every session, not only when problems are explicitly reported.
+7. **Improve this skill** — if any lessons from this session apply to the implement-issue *workflow itself* (a step that was skipped, a pattern that should be enforced, an instruction that was unclear), apply them as targeted edits to this SKILL.md. In interactive sessions, use `/skill-creator` for the full eval loop when making substantial structural changes. In automated runs, make direct edits. The goal: the skill gets slightly better after every session.
 8. **Commit and push retrospection changes** — the edits above produce real file changes (MEMORY.md, CLAUDE.md, SKILL.md). Stage and commit them so they land on `main` when the PR merges. Use a `docs:` or `chore:` prefix:
    ```bash
    git add CLAUDE.md .claude/skills/implement-issue/SKILL.md
@@ -187,3 +190,5 @@ Omit the `Closes #N` line when there is no associated issue.
 - `ensureDefaultDeck()` must be called on app startup — not just in migration callbacks
 - After clearing IndexedDB in E2E tests: `waitForTimeout(1000)` before asserting — the 1000-card seed bulk insert takes longer than a single deck insert
 - Button name `exact: true` when the label is a substring of another button (e.g. "Add" vs "Add Deck")
+- `statSync().mode` is safe for git-tracked scripts (git preserves executable bit) but NOT for `.git/hooks/` or generated files
+- New public decks must be added to ALL migration seedMaps — a structural test enforces this

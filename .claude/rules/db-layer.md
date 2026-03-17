@@ -17,6 +17,7 @@ paths:
 
 Defined in `PUBLIC_DECK_CATALOG` (`src/domain/decks.ts`). To add a new public deck:
 1. Create `src/db/<name>SeedData.ts` exporting `SeedCard[]`
-2. Add entry to `PUBLIC_DECK_CATALOG` and `SEED_CARD_MAP` in `deckRepo.ts`
+2. Add entry to `PUBLIC_DECK_CATALOG` in `decks.ts` (with hardcoded `cardCount`) and `SEED_CARD_MAP` in `deckRepo.ts`
+3. A structural test verifies that `cardCount` in the catalog matches the actual seed data size
 
 `installPublicDeck()` is the canonical pattern for StrictMode-safe idempotent effects.

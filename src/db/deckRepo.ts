@@ -75,9 +75,6 @@ export const permanentlyDeleteDeck = async (id: string): Promise<void> => {
   })
 }
 
-// Keep the old name as an alias for backward compatibility
-export const deleteDeck = permanentlyDeleteDeck
-
 // ── Snapshot / Restore (for undo) ────────────────────────────────────────────────
 
 /** Captures deck + all its cards + their schedules before deletion, for undo. */

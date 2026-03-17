@@ -1081,6 +1081,11 @@ describe('no dead exports in repo layer', () => {
     expect(content).not.toMatch(/export\s+(const|function)\s+getAllDecks/)
   })
 
+  it('deckRepo.ts does not export deleteDeck alias (removed backward-compat shim)', () => {
+    const content = readFileSync(join(__dirname, '../../src/db/deckRepo.ts'), 'utf-8')
+    expect(content).not.toMatch(/export\s+const\s+deleteDeck\b/)
+  })
+
   it('useDueCards.ts does not exist (removed as dead code)', () => {
     expect(existsSync(join(__dirname, '../../src/hooks/useDueCards.ts'))).toBe(false)
   })

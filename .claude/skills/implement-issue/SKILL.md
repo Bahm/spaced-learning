@@ -60,6 +60,7 @@ This is non-negotiable. Tests define the contract; implementation satisfies it.
 - **UI/flow changes** → E2E scenario in `tests/e2e/flashcards.spec.ts`
 - **Both** if the change spans layers
 - **Pure style/CSS changes** — not exempt. Write at least one E2E test asserting a behavioral property of the affected element: an attribute (`title`, `aria-label`, `disabled`), visibility, or role. If a change is truly behavior-free (e.g. a color value), write a minimal smoke test that exercises the affected element so future regressions are caught. "There's nothing to test" is almost never true — a missing `title` attribute on a disabled button is a behavioral gap that an E2E test can catch.
+- **Retrospection/audit issues** — convert findings into structural tests in `claudeRules.test.ts`. The "failing tests" are the structural tests that detect the violations; the "implementation" is fixing the violations so the tests pass. This is TDD — just with structural assertions instead of behavior assertions.
 
 Run to confirm they fail (passing tests at this stage means the feature already exists or the test is wrong):
 ```bash

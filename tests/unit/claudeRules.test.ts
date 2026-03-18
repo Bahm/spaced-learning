@@ -1185,6 +1185,35 @@ describe('skill documentation consistency', () => {
     expect(coAuthorMatch![2]).toBe('4.6')
   })
 
+  it('PWA manifest icons reference files that exist in public/', () => {
+    const viteConfig = readFileSync(join(__dirname, '../../vite.config.ts'), 'utf-8')
+    const publicDir = join(__dirname, '../../public')
+    // Extract icon src values from manifest config
+    const iconSrcMatches = [...viteConfig.matchAll(/src:\s*'([^']+)'/g)]
+    const iconFiles = iconSrcMatches.map(m => m[1]!).filter(f => f.match(/\.(png|svg|ico|webp)$/i))
+    expect(iconFiles.length, 'manifest must declare at least 2 icons').toBeGreaterThanOrEqual(2)
+    for (const iconFile of iconFiles) {
+      expect(existsSync(join(publicDir, iconFile)), `icon file public/${iconFile} must exist`).toBe(true)
+    }
+  })
+
+  it('PWA manifest icons must not use combined purpose "any maskable"', () => {
+    const viteConfig = readFileSync(join(__dirname, '../../vite.config.ts'), 'utf-8')
+    // "any maskable" on a single icon is deprecated — Chrome wants separate entries
+    expect(viteConfig).not.toMatch(/purpose:\s*['"]any\s+maskable['"]/)
+  })
+
+  it('PWA manifest has required Chrome installability fields', () => {
+    const viteConfig = readFileSync(join(__dirname, '../../vite.config.ts'), 'utf-8')
+    // Chrome requires: name, start_url, display (standalone/fullscreen/minimal-ui), icons (192+512)
+    expect(viteConfig).toMatch(/name:\s*'[^']+/)
+    expect(viteConfig).toMatch(/start_url:\s*'[^']+/)
+    expect(viteConfig).toMatch(/display:\s*'(standalone|fullscreen|minimal-ui)'/)
+    // Must have both 192x192 and 512x512 icons
+    expect(viteConfig).toMatch(/sizes:\s*'192x192'/)
+    expect(viteConfig).toMatch(/sizes:\s*'512x512'/)
+  })
+
   it('spaced-learning-guide schema version matches actual db.ts version', () => {
     const guideSkillPath = join(__dirname, '../../.claude/skills/spaced-learning-guide/SKILL.md')
     if (!existsSync(guideSkillPath)) return // skip if skill doesn't exist
